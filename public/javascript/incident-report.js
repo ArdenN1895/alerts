@@ -1,4 +1,4 @@
-// incident-report.js - TRUE BROADCAST VERSION (Mobile Compatible)
+// javascript/incident-report.js - ENHANCED WITH RELIABLE PUSH NOTIFICATIONS
 
 document.addEventListener('DOMContentLoaded', async () => {
   const form = document.getElementById('incidentForm');
@@ -68,13 +68,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     );
   };
 
-  // ==================== FORM SUBMISSION (TRUE BROADCAST) ====================
+  // ==================== FORM SUBMISSION ====================
   form.onsubmit = async e => {
     e.preventDefault();
     
     const incidentType = document.getElementById('type').value;
     const description = document.getElementById('description').value.trim();
 
+    // Validation
     if (!incidentType || !description) {
       return showStatus('Please fill in all required fields', 'error');
     }
@@ -83,6 +84,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       return showStatus('Please provide a location', 'error');
     }
 
+    // Disable submit button to prevent double submission
     const submitBtn = form.querySelector('.submit-btn');
     const originalBtnText = submitBtn.textContent;
     submitBtn.disabled = true;
@@ -93,7 +95,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
       let photoUrl = null;
 
-      // Upload photo
+      // ==================== UPLOAD PHOTO ====================
       if (photoFile) {
         showStatus('Uploading photo...', 'loading');
         
@@ -117,7 +119,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
       }
 
-      // Save to database
+      // ==================== SAVE TO DATABASE ====================
       showStatus('Saving incident report...', 'loading');
 
       const incidentData = {
@@ -138,10 +140,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       console.log('✅ Incident saved to database:', insertedIncident.id);
 
-      // ==================== BROADCAST PUSH NOTIFICATION ====================
-      showStatus('Broadcasting to all users...', 'loading');
+      // ==================== SEND PUSH NOTIFICATIONS ====================
+      showStatus('Notifying users...', 'loading');
 
       try {
+        // Get fresh session token
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+        if (sessionError || !session?.access_token) {
+          console.warn('⚠️ Session error, push may fail:', sessionError);
+        }
+
         // Format location for notification
         let locationText = 'San Pablo City';
         if (currentPosition) {
@@ -150,57 +159,56 @@ document.addEventListener('DOMContentLoaded', async () => {
           locationText = locationInput.value.trim().substring(0, 30);
         }
 
-        // Mobile-friendly notification body (short and concise)
-        const notificationBody = `${incidentType} in ${locationText}`;
-
-        // ✅ TRUE BROADCAST: DO NOT include user_ids
-        const notificationResult = await supabase.functions.invoke('send-push', {
-          body: {
-            title: '🚨 New Incident Report',
-            body: notificationBody,
-            icon: '/public/img/icon-192.png',
-            badge: '/public/img/badge-72.png',
-            image: photoUrl || undefined,
-            url: '/public/html/index.html',
-            urgency: 'high', // High priority for mobile
-            data: {
-              incidentId: insertedIncident.id,
-              incidentType: incidentType,
-              location: currentPosition || locationInput.value.trim(),
-              timestamp: Date.now()
-            }
-            // ✅ NO user_ids = BROADCAST to ALL subscribers
+        // Prepare notification payload
+        const notificationPayload = {
+          title: '🚨 New Incident Reported',
+          body: `${incidentType} reported in ${locationText}. ${description.substring(0, 80)}${description.length > 80 ? '...' : ''}`,
+          icon: '/public/img/icon-192.png',
+          badge: '/public/img/badge-72.png',
+          image: photoUrl || undefined,
+          url: '/public/html/map.html', // Open map to show incident location
+          data: {
+            incidentId: insertedIncident.id,
+            incidentType: incidentType,
+            timestamp: Date.now()
           }
+        };
+
+        console.log('📤 Sending push notification...', notificationPayload);
+
+        // Call Edge Function
+        const pushResponse = await fetch('https://oqmfjwlpuwfpbnpiavhp.supabase.co/functions/v1/send-push', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xbWZqd2xwdXdmcGJucGlhdmhwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4OTgxNzYsImV4cCI6MjA3OTQ3NDE3Nn0.yywiH3q3g1Rbyypt5mxvhRgDXZrSFENZn5s1EWVp8Z8'
+          },
+          body: JSON.stringify(notificationPayload)
         });
 
-        console.log('📊 Broadcast result:', notificationResult);
+        const pushResult = await pushResponse.json();
+        console.log('📊 Push notification result:', pushResult);
 
-        if (notificationResult.error) {
-          console.error('❌ Broadcast failed:', notificationResult.error);
-          showStatus('⚠️ Report saved but notification failed', 'warning');
-        } else if (notificationResult.data) {
-          const result = notificationResult.data;
-          console.log(`✅ Broadcast sent to ${result.delivered_to} user(s)`);
-          
-          if (result.delivered_to > 0) {
-            showStatus(
-              `✅ Report submitted and ${result.delivered_to} user(s) notified!`,
-              'success'
-            );
+        if (pushResponse.ok) {
+          if (pushResult.delivered_to > 0) {
+            console.log(`✅ Push notifications sent to ${pushResult.delivered_to} user(s)`);
           } else {
-            showStatus(
-              '✅ Report submitted (no active subscribers)',
-              'success'
-            );
+            console.warn('⚠️ No users subscribed to push notifications');
           }
+        } else {
+          console.error('❌ Push notification failed:', pushResult.error);
         }
 
       } catch (pushError) {
-        console.error('⚠️ Broadcast error (non-critical):', pushError);
-        showStatus('✅ Report submitted (notification failed)', 'warning');
+        // Don't fail the whole submission if push fails
+        console.error('⚠️ Push notification error (non-critical):', pushError);
       }
 
-      // Reset form
+      // ==================== SUCCESS ====================
+      showStatus('✅ Report submitted successfully! Thank you for helping keep San Pablo City safe.', 'success');
+
+      // Reset form after 2 seconds
       setTimeout(() => {
         form.reset();
         photoPreview.style.display = 'none';
@@ -220,6 +228,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       console.error('❌ Submission error:', err);
       showStatus('Error: ' + (err.message || 'Failed to submit report. Please try again.'), 'error');
       
+      // Re-enable submit button on error
       submitBtn.disabled = false;
       submitBtn.textContent = originalBtnText;
     }
@@ -231,7 +240,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     statusMessage.className = 'status-message ' + type;
     statusMessage.style.display = 'block';
 
-    if (type === 'success' || type === 'warning') {
+    // Auto-hide success messages after 5 seconds
+    if (type === 'success') {
       setTimeout(() => {
         statusMessage.style.display = 'none';
       }, 5000);

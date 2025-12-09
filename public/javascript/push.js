@@ -14,36 +14,36 @@ async function subscribeUser() {
   if (pushInitialized) return;
   pushInitialized = true;
 
-  console.log("🔔 Initializing push subscription...");
+  console.log("ðŸ”” Initializing push subscription...");
 
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-    console.warn("🚫 Push not supported on this browser");
+    console.warn("ðŸš« Push not supported on this browser");
     return;
   }
 
   try {
-    console.log("⏳ Waiting for service worker...");
+    console.log("â³ Waiting for service worker...");
     const reg = await navigator.serviceWorker.ready;
-    console.log("✔ Service worker ready:", reg.active?.scriptURL);
+    console.log("âœ” Service worker ready:", reg.active?.scriptURL);
 
     const { data: { user } } = await window.supabase.auth.getUser();
     if (!user) {
-      console.warn("🚫 No logged-in user — push not initialized");
+      console.warn("ðŸš« No logged-in user â€” push not initialized");
       return;
     }
 
-    console.log("👤 Logged in as:", user.email);
+    console.log("ðŸ‘¤ Logged in as:", user.email);
 
     let sub = await reg.pushManager.getSubscription();
     if (!sub) {
-      console.log("📨 Requesting permission...");
+      console.log("ðŸ“¨ Requesting permission...");
       const permission = await Notification.requestPermission();
       if (permission !== "granted") {
-        console.warn("🚫 Notification permission denied");
+        console.warn("ðŸš« Notification permission denied");
         return;
       }
 
-      console.log("🔐 Subscribing user...");
+      console.log("ðŸ” Subscribing user...");
       const applicationServerKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
       sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
@@ -51,7 +51,7 @@ async function subscribeUser() {
       });
     }
 
-    console.log("📍 Subscription endpoint:", sub.endpoint);
+    console.log("ðŸ“ Subscription endpoint:", sub.endpoint);
 
     const subscriptionObject = {
       endpoint: sub.endpoint,
@@ -62,7 +62,7 @@ async function subscribeUser() {
       }
     };
 
-    console.log("💾 Saving subscription...");
+    console.log("ðŸ’¾ Saving subscription...");
     const { error } = await window.supabase
       .from("push_subscriptions")
       .upsert({
@@ -74,15 +74,15 @@ async function subscribeUser() {
 
     if (error) throw error;
 
-    console.log("🎉 Subscription saved successfully!");
+    console.log("ðŸŽ‰ Subscription saved successfully!");
 
   } catch (err) {
-    console.error("❌ Push subscription failed:", err);
+    console.error("âŒ Push subscription failed:", err);
   }
 }
 
 window.addEventListener("supabase-ready", () => {
-  console.log("🚀 Supabase ready — starting push setup");
+  console.log("ðŸš€ Supabase ready â€” starting push setup");
   subscribeUser();
 });
 

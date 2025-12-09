@@ -1,6 +1,5 @@
 // supabase/functions/send-push/index.ts
-// UNIFIED VERSION: Handles both targeted (user_ids) and broadcast (all users) notifications
-// FIX: Refactored to use Promise.allSettled() for concurrent sending to prevent Edge Function timeout on broadcast.
+// WORKING VERSION - Uses web-push library
 
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -13,7 +12,6 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders });
   }
@@ -25,31 +23,32 @@ serve(async (req) => {
     );
   }
 
-  console.log("📬 ===== PUSH NOTIFICATION REQUEST (CONCURRENT) =====");
+  console.log("📬 ===== PUSH NOTIFICATION REQUEST =====");
 
   try {
-    // Get environment variables
     const vapidPublic = Deno.env.get("VAPID_PUBLIC_KEY");
     const vapidPrivate = Deno.env.get("VAPID_PRIVATE_KEY");
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
+    console.log("🔑 Environment check:");
+    console.log("- VAPID_PUBLIC_KEY:", vapidPublic ? "✅ Set" : "❌ Missing");
+    console.log("- VAPID_PRIVATE_KEY:", vapidPrivate ? "✅ Set" : "❌ Missing");
+
     if (!vapidPublic || !vapidPrivate) {
-      console.error("❌ VAPID keys not configured");
       return new Response(
         JSON.stringify({ error: "VAPID keys not configured" }), 
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Configure web-push with VAPID keys
+    // ✅ Configure web-push with VAPID keys
     webpush.setVapidDetails(
       "mailto:admin@spcalerts.com",
       vapidPublic,
       vapidPrivate
     );
 
-    // Parse request body
     const requestData = await req.json();
     const { 
       title, 
@@ -58,22 +57,11 @@ serve(async (req) => {
       badge = "/public/img/badge-72.png",
       image, 
       url = "/public/html/index.html",
-      data,
-      urgency = "normal",
-      user_ids // Optional: if provided = targeted, if not = broadcast to ALL
+      data
     } = requestData;
 
     console.log(`📨 Notification: "${title}" - "${body}"`);
-    
-    // Determine notification type
-    const isTargeted = user_ids && Array.isArray(user_ids) && user_ids.length > 0;
-    if (isTargeted) {
-      console.log(`🎯 TARGETED notification to ${user_ids.length} specific user(s)`);
-    } else {
-      console.log(`📢 BROADCAST notification to ALL subscribed users`);
-    }
 
-    // Validate required fields
     if (!title || !body) {
       return new Response(
         JSON.stringify({ error: "title and body are required" }), 
@@ -81,19 +69,11 @@ serve(async (req) => {
       );
     }
 
-    // Create Supabase client
     const supabase = createClient(supabaseUrl!, supabaseKey!);
     
-    // Fetch subscriptions
-    let query = supabase.from("push_subscriptions").select("id, user_id, subscription");
-    
-    if (isTargeted) {
-      // TARGETED: Only fetch subscriptions for specified users
-      query = query.in('user_id', user_ids);
-    }
-    // If not targeted, fetch ALL subscriptions (broadcast)
-
-    const { data: subscriptions, error: fetchError } = await query;
+    const { data: subscriptions, error: fetchError } = await supabase
+      .from("push_subscriptions")
+      .select("id, user_id, subscription");
 
     if (fetchError) {
       console.error("❌ Database error:", fetchError);
@@ -106,25 +86,12 @@ serve(async (req) => {
     console.log(`📊 Found ${subscriptions?.length || 0} subscription(s)`);
 
     if (!subscriptions || subscriptions.length === 0) {
-      const message = isTargeted
-        ? `No subscribers found for specified users: ${user_ids.join(', ')}`
-        : "No subscribers found in the system";
-      
-      console.log("⚠️", message);
-      
       return new Response(
-        JSON.stringify({ 
-          success: true, 
-          delivered_to: 0, 
-          message,
-          notification_type: isTargeted ? 'targeted' : 'broadcast',
-          targeted_users: user_ids || null
-        }), 
+        JSON.stringify({ success: true, delivered_to: 0, message: "No subscribers" }), 
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Prepare notification payload
     const notificationPayload = JSON.stringify({ 
       title, 
       body, 
@@ -132,63 +99,49 @@ serve(async (req) => {
       badge: badge || "/public/img/badge-72.png",
       image, 
       url,
-      data: data || {},
-      timestamp: Date.now(),
-      tag: `spc-alert-${Date.now()}`, // Unique tag for each notification
-      requireInteraction: urgency === 'high'
+      data: data || {} // Include custom data for notification
     });
 
     let delivered = 0;
     let failed = 0;
-    const errors: Array<{id: string, user_id: string, error: string}> = [];
+    const errors: Array<{id: string, error: string}> = [];
 
-    // ==========================================================
-    // 💡 FIX: Use Promise.allSettled() for concurrent sending
-    // ==========================================================
-    const sendPromises = subscriptions.map(({ id, user_id, subscription }) => (async () => {
+    for (const { id, subscription } of subscriptions) {
       try {
-        // Parse subscription if it's a string
-        const sub = typeof subscription === 'string' ? JSON.parse(subscription) : subscription;
+        console.log(`\n📤 Sending to subscription ${id}...`);
         
-        // Send the notification
-        await webpush.sendNotification(
+        const sub = typeof subscription === 'string' ? JSON.parse(subscription) : subscription;
+        console.log(`- Endpoint: ${sub.endpoint.substring(0, 50)}...`);
+        
+        // ✅ Use web-push library to send
+        const result = await webpush.sendNotification(
           sub,
           notificationPayload,
           {
-            TTL: 86400, // 24 hours
-            urgency: urgency,
+            TTL: 86400,
             contentEncoding: "aes128gcm"
           }
         );
-        
-        // Update shared counter (acceptable in this pattern)
-        delivered++; 
 
-      } catch (error: any) {
-        console.error(`❌ Failed for user ${user_id}:`, error.message);
+        console.log(`✅ Delivered successfully (status: ${result.statusCode})`);
+        delivered++;
+
+      } catch (error) {
+        console.error(`❌ Failed:`, error.message);
         failed++;
-        errors.push({ id, user_id, error: error.message });
+        errors.push({ id, error: error.message });
 
-        // Remove invalid/expired subscriptions
+        // Remove invalid subscriptions
         if (error.statusCode === 410 || error.statusCode === 404) {
-          console.log(`🗑️ Removing invalid subscription ${id} for user ${user_id}`);
-          // Await the deletion to ensure database cleanup happens
+          console.log(`🗑️ Removing invalid subscription ${id}`);
           await supabase.from("push_subscriptions").delete().eq("id", id);
         }
       }
-    })());
+    }
 
-    // Wait for ALL promises (notification attempts) to settle
-    await Promise.allSettled(sendPromises);
-
-    // ==========================================================
-
-    // Log final results
     console.log(`\n📊 FINAL RESULTS:`);
-    console.log(`- Notification type: ${isTargeted ? 'TARGETED' : 'BROADCAST'}`);
     console.log(`- Delivered: ${delivered}`);
     console.log(`- Failed: ${failed}`);
-    console.log(`- Total subscriptions: ${subscriptions.length}`);
 
     return new Response(
       JSON.stringify({ 
@@ -196,14 +149,12 @@ serve(async (req) => {
         delivered_to: delivered,
         failed: failed,
         total_subscriptions: subscriptions.length,
-        notification_type: isTargeted ? 'targeted' : 'broadcast',
-        targeted_users: user_ids || null,
-        errors: errors.length > 0 ? errors : undefined
+        errors: errors
       }), 
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
-  } catch (error: any) {
+  } catch (error) {
     console.error("❌ FATAL ERROR:", error);
     return new Response(
       JSON.stringify({ 

@@ -1,4 +1,82 @@
-// javascript/incident-report.js - ENHANCED WITH RELIABLE PUSH NOTIFICATIONS
+
+function waitForSupabase() {
+  return new Promise(resolve => {
+    if (window.supabase) return resolve(window.supabase);
+    window.addEventListener('supabase-ready', () => resolve(window.supabase), { once: true });
+    
+    const check = setInterval(() => {
+      if (window.supabase) {
+        clearInterval(check);
+        resolve(window.supabase);
+      }
+    }, 100);
+    
+    setTimeout(() => {
+      clearInterval(check);
+      resolve(null);
+    }, 10000);
+  });
+}
+
+/**
+ * Checks authentication and redirects if not logged in
+ */
+async function checkAuthAndRedirect() {
+  const supabase = await waitForSupabase();
+  
+  if (!supabase) {
+    alert('Failed to connect to database. Please refresh the page.');
+    location.href = 'login.html';
+    return null;
+  }
+
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const fakeAdmin = JSON.parse(localStorage.getItem('currentUser') || 'null');
+
+    if (session?.user) {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error loading user:', error);
+        throw error;
+      }
+
+      if (!data) {
+        alert('Profile not found. Please complete registration.');
+        location.href = 'signup.html';
+        return null;
+      }
+
+      return data;
+    } else if (fakeAdmin?.is_admin) {
+      return {
+        id: fakeAdmin.id || 'admin-001',
+        first_name: fakeAdmin.first_name || 'System',
+        last_name: fakeAdmin.last_name || 'Administrator',
+        email: fakeAdmin.email || 'admin@spcalert.ph',
+        phone: fakeAdmin.phone || '',
+        address: fakeAdmin.address || '',
+        role: 'admin',
+        is_admin: true,
+        emergency_contact: fakeAdmin.emergency_contact || null
+      };
+    } else {
+      alert('You must be logged in to view this page.');
+      location.href = 'login.html';
+      return null;
+    }
+  } catch (err) {
+    console.error('Authentication error:', err);
+    alert('Session error. Redirecting to login.');
+    location.href = 'login.html';
+    return null;
+  }
+}
 
 document.addEventListener('DOMContentLoaded', async () => {
   const form = document.getElementById('incidentForm');
@@ -13,38 +91,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   let currentPosition = null;
   let photoFile = null;
 
-  const supabase = await new Promise(r => {
-    if (window.supabase) return r(window.supabase);
-    window.addEventListener('supabase-ready', () => r(window.supabase), { once: true });
-    setTimeout(() => window.supabase && r(window.supabase), 10000);
-  });
+  const supabase = await waitForSupabase();
+  if (!supabase) {
+    showStatus('Connection failed.', 'error');
+    return;
+  }
 
-  if (!supabase) return showStatus('Connection failed.', 'error');
-
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return location.href = '/public/html/login.html';
-
-  const checkAuth = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const fakeAdmin = JSON.parse(localStorage.getItem('currentUser') || 'null');
-
-      if (session?.user) {
-        await loadUserFromSupabase(session.user.id);
-      } else if (fakeAdmin?.is_admin) {
-        loadFakeAdmin(fakeAdmin);
-      } else {
-        alert('You must be logged in to view this page.');
-        location.href = 'login.html';
-      }
-    } catch (err) {
-      console.error(err);
-      alert('Session error. Redirecting to login.');
-      location.href = 'login.html';
-    }
-  };
-
-  await checkAuth();
+  // Check authentication
+  const userData = await checkAuthAndRedirect();
+  if (!userData) return; // Stop execution if not authenticated
 
   // Photo handling
   photoInput.addEventListener('change', () => {
@@ -122,7 +177,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         showStatus('Uploading photo...', 'loading');
         
         const ext = photoFile.name.split('.').pop();
-        const filename = `${user.id}/${Date.now()}.${ext}`;
+        const filename = `${userData.id}/${Date.now()}.${ext}`;
         
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('incident-photos')
@@ -149,7 +204,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         description: description,
         location: currentPosition || { manual: locationInput.value.trim() },
         photo_url: photoUrl,
-        reported_by: user.id
+        reported_by: userData.id
       };
 
       const { data: insertedIncident, error: dbError } = await supabase
@@ -166,7 +221,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       showStatus('Notifying users...', 'loading');
 
       try {
-        // Get fresh session token
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
         if (sessionError || !session?.access_token) {
@@ -188,7 +242,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           icon: '/public/img/icon-192.png',
           badge: '/public/img/badge-72.png',
           image: photoUrl || undefined,
-          url: '/public/html/map.html', // Open map to show incident location
+          url: '/public/html/map.html',
           data: {
             incidentId: insertedIncident.id,
             incidentType: incidentType,
@@ -198,7 +252,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         console.log('📤 Sending push notification...', notificationPayload);
 
-        // Call Edge Function
         const pushResponse = await fetch('https://oqmfjwlpuwfpbnpiavhp.supabase.co/functions/v1/send-push', {
           method: 'POST',
           headers: {
@@ -223,7 +276,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
       } catch (pushError) {
-        // Don't fail the whole submission if push fails
         console.error('⚠️ Push notification error (non-critical):', pushError);
       }
 
@@ -250,7 +302,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       console.error('❌ Submission error:', err);
       showStatus('Error: ' + (err.message || 'Failed to submit report. Please try again.'), 'error');
       
-      // Re-enable submit button on error
       submitBtn.disabled = false;
       submitBtn.textContent = originalBtnText;
     }
@@ -262,7 +313,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     statusMessage.className = 'status-message ' + type;
     statusMessage.style.display = 'block';
 
-    // Auto-hide success messages after 5 seconds
     if (type === 'success') {
       setTimeout(() => {
         statusMessage.style.display = 'none';

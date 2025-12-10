@@ -1,103 +1,18 @@
-
-function waitForSupabase() {
-  return new Promise(resolve => {
-    if (window.supabase) return resolve(window.supabase);
-    window.addEventListener('supabase-ready', () => resolve(window.supabase), { once: true });
-    
-    const check = setInterval(() => {
-      if (window.supabase) {
-        clearInterval(check);
-        resolve(window.supabase);
-      }
-    }, 100);
-    
-    setTimeout(() => {
-      clearInterval(check);
-      resolve(null);
-    }, 10000);
-  });
-}
-
-/**
- * Checks authentication and redirects if not logged in
- */
-async function checkAuthAndRedirect() {
-  const supabase = await waitForSupabase();
-  
-  if (!supabase) {
-    alert('Failed to connect to database. Please refresh the page.');
-    location.href = 'login.html';
-    return null;
-  }
-
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    const fakeAdmin = JSON.parse(localStorage.getItem('currentUser') || 'null');
-
-    if (session?.user) {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', session.user.id)
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error loading user:', error);
-        throw error;
-      }
-
-      if (!data) {
-        alert('Profile not found. Please complete registration.');
-        location.href = 'signup.html';
-        return null;
-      }
-
-      return data;
-    } else if (fakeAdmin?.is_admin) {
-      return {
-        id: fakeAdmin.id || 'admin-001',
-        first_name: fakeAdmin.first_name || 'System',
-        last_name: fakeAdmin.last_name || 'Administrator',
-        email: fakeAdmin.email || 'admin@spcalert.ph',
-        phone: fakeAdmin.phone || '',
-        address: fakeAdmin.address || '',
-        role: 'admin',
-        is_admin: true,
-        emergency_contact: fakeAdmin.emergency_contact || null
-      };
-    } else {
-      alert('You must be logged in to view this page.');
-      location.href = 'login.html';
-      return null;
-    }
-  } catch (err) {
-    console.error('Authentication error:', err);
-    alert('Session error. Redirecting to login.');
-    location.href = 'login.html';
-    return null;
-  }
-}
-
 document.addEventListener('DOMContentLoaded', async () => {
   const cardsContainer = document.querySelector('.cards');
   if (!cardsContainer) return;
-
-  // Check authentication first
-  const userData = await checkAuthAndRedirect();
-  if (!userData) return; // Stop execution if not authenticated
 
   // Cache for addresses
   window.addressCache = new Map();
 
   let supabase;
   try {
-    supabase = await waitForSupabase();
+    supabase = await new Promise(resolve => {
+      if (window.supabase) return resolve(window.supabase);
+      window.addEventListener('supabase-ready', () => resolve(window.supabase), { once: true });
+      setTimeout(() => window.supabase && resolve(window.supabase), 10000);
+    });
   } catch {
-    cardsContainer.innerHTML = '<p style="text-align:center;color:#d32f2f;">Connection failed.</p>';
-    return;
-  }
-  
-  if (!supabase) {
     cardsContainer.innerHTML = '<p style="text-align:center;color:#d32f2f;">Connection failed.</p>';
     return;
   }
@@ -110,7 +25,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
       const res = await fetch(`https://photon.komoot.io/reverse?lon=${lng}&lat=${lat}&limit=1`);
       const data = await res.json();
-      let address = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+      let address = `${lat.toFixed(6)}, ${lng.toFixed(6)}`; // fallback
 
       if (data.features?.[0]?.properties) {
         const p = data.features[0].properties;
@@ -211,11 +126,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       </div>
     `;
 
+    // Remove existing modal if any
     const existingModal = document.getElementById('incidentModal');
     if (existingModal) existingModal.remove();
 
+    // Add modal to body
     document.body.insertAdjacentHTML('beforeend', modalHTML);
 
+    // Add event listeners
     const modal = document.getElementById('incidentModal');
     const closeBtn = document.getElementById('modalClose');
     const overlay = modal.querySelector('.modal-overlay');
@@ -228,6 +146,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     closeBtn.addEventListener('click', closeModal);
     overlay.addEventListener('click', closeModal);
 
+    // Close on ESC key
     const escHandler = (e) => {
       if (e.key === 'Escape') {
         closeModal();
@@ -236,6 +155,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
     document.addEventListener('keydown', escHandler);
 
+    // Animate in
     setTimeout(() => modal.classList.add('modal-active'), 10);
   };
 
@@ -288,6 +208,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     cardsContainer.innerHTML = cards.join('');
 
+    // Add click handlers to cards
     document.querySelectorAll('.incident-card').forEach((card) => {
       card.addEventListener('click', () => {
         const incidentId = card.getAttribute('data-incident-id');
@@ -330,17 +251,15 @@ function escapeHtml(text) {
 const burgerBtn = document.getElementById("burgerBtn");
 const mainNav = document.getElementById("mainNav");
 
-if (burgerBtn && mainNav) {
-  burgerBtn.addEventListener("click", (e) => {
+burgerBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     mainNav.classList.toggle("show");
     burgerBtn.classList.toggle("active");
-  });
+});
 
-  document.addEventListener("click", (e) => {
+document.addEventListener("click", (e) => {
     if (!mainNav.contains(e.target) && !burgerBtn.contains(e.target)) {
-      mainNav.classList.remove("show");
-      burgerBtn.classList.remove("active");
+        mainNav.classList.remove("show");
+        burgerBtn.classList.remove("active");
     }
-  });
-}
+});

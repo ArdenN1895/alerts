@@ -1,5 +1,27 @@
 // javascript/maps.js - Interactive Evacuation Centers Map for San Pablo City
 
+const checkAuth = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const fakeAdmin = JSON.parse(localStorage.getItem('currentUser') || 'null');
+
+      if (session?.user) {
+        await loadUserFromSupabase(session.user.id);
+      } else if (fakeAdmin?.is_admin) {
+        loadFakeAdmin(fakeAdmin);
+      } else {
+        alert('You must be logged in to view this page.');
+        location.href = 'login.html';
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Session error. Redirecting to login.');
+      location.href = 'login.html';
+    }
+  };
+
+await checkAuth();
+
 document.addEventListener('DOMContentLoaded', function () {
     // Verify Leaflet is loaded
     if (typeof L === 'undefined') {

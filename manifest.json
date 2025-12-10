@@ -2,7 +2,7 @@
   "name": "SPC Alerts - San Pablo City Disaster Alerts",
   "short_name": "SPC Alerts",
   "description": "Real-time disaster alerts and emergency notifications for San Pablo City, Laguna",
-  "start_url": "/public/html/login.html",
+  "start_url": "/public/html/index.html",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",

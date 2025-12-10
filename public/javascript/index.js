@@ -28,13 +28,12 @@ const checkAuth = async () => {
       } else if (fakeAdmin?.is_admin) {
         loadFakeAdmin(fakeAdmin);
       } else {
-        if (confirm('Not logged in. Go to login?')) {
-          location.href = 'login.html';
-        }
+        alert('You must be logged in to view this page.');
+        location.href = 'login.html';
       }
     } catch (err) {
       console.error(err);
-      alert('Session error');
+      alert('Session error. Redirecting to login.');
       location.href = 'login.html';
     }
   };

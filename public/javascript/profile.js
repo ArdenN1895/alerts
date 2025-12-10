@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const checkAuth = async () => {
     try {
-      const { data: { session } } = await supabaseClient.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
       const fakeAdmin = JSON.parse(localStorage.getItem('currentUser') || 'null');
 
       if (session?.user) {
@@ -36,13 +36,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       } else if (fakeAdmin?.is_admin) {
         loadFakeAdmin(fakeAdmin);
       } else {
-        if (confirm('Not logged in. Go to login?')) {
-          location.href = 'login.html';
-        }
+        alert('You must be logged in to view this page.');
+        location.href = 'login.html';
       }
     } catch (err) {
       console.error(err);
-      alert('Session error');
+      alert('Session error. Redirecting to login.');
       location.href = 'login.html';
     }
   };

@@ -1,4 +1,3 @@
-// PWA Install Button Logic
 document.addEventListener('DOMContentLoaded', async () => {
   
   // Check authentication first
@@ -24,46 +23,49 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   };
 
-await checkAuth();
+  // Call checkAuth and wait for it
+  await checkAuth();
 
-let deferredPrompt;
-
-window.addEventListener('beforeinstallprompt', (e) => {
+  // PWA Install Button Logic
+  let deferredPrompt;
+  window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
     
-    // Show the install button
     const installBtn = document.getElementById('installBtn');
     if (installBtn) {
-        installBtn.style.display = 'flex';
+      installBtn.style.display = 'flex';
+      
+      installBtn.addEventListener('click', () => {
+        installBtn.style.display = 'none';
+        deferredPrompt.prompt();
         
-        installBtn.addEventListener('click', () => {
-            installBtn.style.display = 'none';
-            deferredPrompt.prompt();
-            
-            deferredPrompt.userChoice.then((choice) => {
-                if (choice.outcome === 'accepted') {
-                    console.log('User installed the app');
-                }
-                deferredPrompt = null;
-            });
+        deferredPrompt.userChoice.then((choice) => {
+          if (choice.outcome === 'accepted') {
+            console.log('User installed the app');
+          }
+          deferredPrompt = null;
         });
+      });
     }
-});
+  });
 
-const burgerBtn = document.getElementById("burgerBtn");
-const mainNav = document.getElementById("mainNav");
+  // Burger menu
+  const burgerBtn = document.getElementById("burgerBtn");
+  const mainNav = document.getElementById("mainNav");
 
-burgerBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    mainNav.classList.toggle("show");
-    burgerBtn.classList.toggle("active"); // animate
-});
+  if (burgerBtn && mainNav) {
+    burgerBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      mainNav.classList.toggle("show");
+      burgerBtn.classList.toggle("active");
+    });
 
-// Close menu on outside click
-document.addEventListener("click", (e) => {
-    if (!mainNav.contains(e.target) && !burgerBtn.contains(e.target)) {
+    document.addEventListener("click", (e) => {
+      if (!mainNav.contains(e.target) && !burgerBtn.contains(e.target)) {
         mainNav.classList.remove("show");
-        burgerBtn.classList.remove("active"); // reset animation
-    }
+        burgerBtn.classList.remove("active");
+      }
+    });
+  }
 });

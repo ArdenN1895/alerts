@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 const checkAuth = async () => {
     try {
-      const { data: { session } } = await supabaseClient.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
       const fakeAdmin = JSON.parse(localStorage.getItem('currentUser') || 'null');
 
       if (session?.user) {

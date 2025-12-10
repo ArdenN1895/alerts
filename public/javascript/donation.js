@@ -1,3 +1,5 @@
+import '../javascript/supabase.js';
+
 document.addEventListener('DOMContentLoaded', async () => {
   
   // Check authentication first

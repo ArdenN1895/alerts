@@ -18,6 +18,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
+const checkAuth = async () => {
+    try {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      const fakeAdmin = JSON.parse(localStorage.getItem('currentUser') || 'null');
+
+      if (session?.user) {
+        await loadUserFromSupabase(session.user.id);
+      } else if (fakeAdmin?.is_admin) {
+        loadFakeAdmin(fakeAdmin);
+      } else {
+        if (confirm('Not logged in. Go to login?')) {
+          location.href = 'login.html';
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Session error');
+      location.href = 'login.html';
+    }
+  };
+  
   // FREE Reverse Geocoding (Photon + OSM)
   async function getAddressFromCoords(lat, lng) {
     const key = `${lat.toFixed(6)},${lng.toFixed(6)}`;

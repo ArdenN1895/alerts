@@ -24,6 +24,28 @@ document.addEventListener('DOMContentLoaded', async () => {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return location.href = '/public/html/login.html';
 
+  const checkAuth = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const fakeAdmin = JSON.parse(localStorage.getItem('currentUser') || 'null');
+
+      if (session?.user) {
+        await loadUserFromSupabase(session.user.id);
+      } else if (fakeAdmin?.is_admin) {
+        loadFakeAdmin(fakeAdmin);
+      } else {
+        alert('You must be logged in to view this page.');
+        location.href = 'login.html';
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Session error. Redirecting to login.');
+      location.href = 'login.html';
+    }
+  };
+
+  await checkAuth();
+
   // Photo handling
   photoInput.addEventListener('change', () => {
     photoFile = photoInput.files[0];

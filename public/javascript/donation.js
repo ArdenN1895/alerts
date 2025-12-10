@@ -1,4 +1,26 @@
 // PWA Install Button Logic
+const checkAuth = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const fakeAdmin = JSON.parse(localStorage.getItem('currentUser') || 'null');
+
+      if (session?.user) {
+        await loadUserFromSupabase(session.user.id);
+      } else if (fakeAdmin?.is_admin) {
+        loadFakeAdmin(fakeAdmin);
+      } else {
+        alert('You must be logged in to view this page.');
+        location.href = 'login.html';
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Session error. Redirecting to login.');
+      location.href = 'login.html';
+    }
+  };
+
+await checkAuth();
+
 let deferredPrompt;
 
 window.addEventListener('beforeinstallprompt', (e) => {
@@ -23,28 +45,6 @@ window.addEventListener('beforeinstallprompt', (e) => {
         });
     }
 });
-
-const checkAuth = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const fakeAdmin = JSON.parse(localStorage.getItem('currentUser') || 'null');
-
-      if (session?.user) {
-        await loadUserFromSupabase(session.user.id);
-      } else if (fakeAdmin?.is_admin) {
-        loadFakeAdmin(fakeAdmin);
-      } else {
-        alert('You must be logged in to view this page.');
-        location.href = 'login.html';
-      }
-    } catch (err) {
-      console.error(err);
-      alert('Session error. Redirecting to login.');
-      location.href = 'login.html';
-    }
-  };
-
-await checkAuth();
 
 const burgerBtn = document.getElementById("burgerBtn");
 const mainNav = document.getElementById("mainNav");

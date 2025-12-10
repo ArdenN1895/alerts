@@ -17,26 +17,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     cardsContainer.innerHTML = '<p style="text-align:center;color:#d32f2f;">Connection failed.</p>';
     return;
   }
-
-const checkAuth = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const fakeAdmin = JSON.parse(localStorage.getItem('currentUser') || 'null');
-
-      if (session?.user) {
-        await loadUserFromSupabase(session.user.id);
-      } else if (fakeAdmin?.is_admin) {
-        loadFakeAdmin(fakeAdmin);
-      } else {
-        alert('You must be logged in to view this page.');
-        location.href = 'login.html';
-      }
-    } catch (err) {
-      console.error(err);
-      alert('Session error. Redirecting to login.');
-      location.href = 'login.html';
-    }
-  };
   
   // FREE Reverse Geocoding (Photon + OSM)
   async function getAddressFromCoords(lat, lng) {
@@ -259,8 +239,7 @@ const checkAuth = async () => {
   supabase.channel('incidents-channel')
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'incidents' }, () => loadIncidents())
     .subscribe();
-  
-  await checkAuth();
+
   loadIncidents();
 });
 

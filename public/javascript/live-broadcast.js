@@ -1,26 +1,3 @@
-// Enhanced Live Broadcast JavaScript with Weather Overlay Map
-
-const checkAuth = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const fakeAdmin = JSON.parse(localStorage.getItem('currentUser') || 'null');
-
-      if (session?.user) {
-        await loadUserFromSupabase(session.user.id);
-      } else if (fakeAdmin?.is_admin) {
-        loadFakeAdmin(fakeAdmin);
-      } else {
-        alert('You must be logged in to view this page.');
-        location.href = 'login.html';
-      }
-    } catch (err) {
-      console.error(err);
-      alert('Session error. Redirecting to login.');
-      location.href = 'login.html';
-    }
-  };
-
-await checkAuth();
 class LiveBroadcast {
     constructor() {
         this.apiKey = '54c135938e9d7cc39c5532187a963f46'; // OpenWeatherMap API Key
@@ -104,7 +81,7 @@ class LiveBroadcast {
         this.windyIframe = iframe;
         this.currentLayer = 'precipitation';
         
-        console.log('✅ Windy weather map initialized (embed mode)');
+        console.log('âœ… Windy weather map initialized (embed mode)');
         this.addUpdate('Weather map loaded successfully');
     }
 
@@ -231,12 +208,12 @@ class LiveBroadcast {
                 <div class="weather-icon-large">
                     <i class="${this.getWeatherIcon(weather.icon)}"></i>
                 </div>
-                <div class="temperature-display">${weather.temperature}°C</div>
+                <div class="temperature-display">${weather.temperature}Â°C</div>
                 <div class="weather-description">${weather.description}</div>
                 <div class="weather-details-grid">
                     <div class="weather-detail">
                         <span>Feels like:</span>
-                        <span>${weather.feelsLike}°C</span>
+                        <span>${weather.feelsLike}Â°C</span>
                     </div>
                     <div class="weather-detail">
                         <span>Humidity:</span>
@@ -276,7 +253,7 @@ class LiveBroadcast {
                         <div class="weather-icon">
                             <i class="${this.getWeatherIcon(day.icon)}"></i>
                         </div>
-                        <div class="temperature">${day.temp}°C</div>
+                        <div class="temperature">${day.temp}Â°C</div>
                         <div class="description">${day.description}</div>
                     </div>
                 `).join('')}
@@ -311,8 +288,8 @@ class LiveBroadcast {
         const temps = forecast.list.map(item => item.main.temp);
         const humidities = forecast.list.map(item => item.main.humidity);
         
-        document.getElementById('maxTemp').textContent = `${Math.round(Math.max(...temps))}°C`;
-        document.getElementById('minTemp').textContent = `${Math.round(Math.min(...temps))}°C`;
+        document.getElementById('maxTemp').textContent = `${Math.round(Math.max(...temps))}Â°C`;
+        document.getElementById('minTemp').textContent = `${Math.round(Math.min(...temps))}Â°C`;
         document.getElementById('avgHumidity').textContent = `${Math.round(humidities.reduce((a, b) => a + b) / humidities.length)}%`;
         document.getElementById('rainTotal').textContent = '25 mm';
     }
@@ -336,7 +313,7 @@ class LiveBroadcast {
             alerts.push({
                 type: 'warning',
                 title: 'Heat Advisory',
-                message: `High temperature (${temp}°C). Stay hydrated and avoid prolonged exposure.`
+                message: `High temperature (${temp}Â°C). Stay hydrated and avoid prolonged exposure.`
             });
         }
 

@@ -1,27 +1,3 @@
-// javascript/maps.js - Interactive Evacuation Centers Map for San Pablo City
-
-const checkAuth = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const fakeAdmin = JSON.parse(localStorage.getItem('currentUser') || 'null');
-
-      if (session?.user) {
-        await loadUserFromSupabase(session.user.id);
-      } else if (fakeAdmin?.is_admin) {
-        loadFakeAdmin(fakeAdmin);
-      } else {
-        alert('You must be logged in to view this page.');
-        location.href = 'login.html';
-      }
-    } catch (err) {
-      console.error(err);
-      alert('Session error. Redirecting to login.');
-      location.href = 'login.html';
-    }
-  };
-
-await checkAuth();
-
 document.addEventListener('DOMContentLoaded', function () {
     // Verify Leaflet is loaded
     if (typeof L === 'undefined') {
@@ -132,14 +108,14 @@ document.addEventListener('DOMContentLoaded', function () {
                     <h3 style="margin: 0 0 10px; color: #005ea5; font-size: 16px;">
                         <i class="fas fa-home"></i> ${center.name}
                     </h3>
-                    <p style="margin: 5px 0; font-size: 13px;"><strong>📍 Address:</strong><br>${center.address}</p>
-                    <p style="margin: 5px 0; font-size: 13px;"><strong>👥 Capacity:</strong> ${center.capacity}</p>
-                    <p style="margin: 5px 0; font-size: 13px;"><strong>📞 Contact:</strong><br>${center.contact}</p>
+                    <p style="margin: 5px 0; font-size: 13px;"><strong>ðŸ“ Address:</strong><br>${center.address}</p>
+                    <p style="margin: 5px 0; font-size: 13px;"><strong>ðŸ‘¥ Capacity:</strong> ${center.capacity}</p>
+                    <p style="margin: 5px 0; font-size: 13px;"><strong>ðŸ“ž Contact:</strong><br>${center.contact}</p>
                     <div style="margin-top: 12px; text-align: center;">
                         <a href="https://www.google.com/maps/dir/?api=1&destination=${center.coords[0]},${center.coords[1]}&travelmode=driving" 
                            target="_blank"
                            style="background:#e57200; color:white; padding:10px 18px; border-radius:6px; text-decoration:none; font-size:14px; font-weight:600; display:inline-block;">
-                            🚗 Navigate Here
+                            ðŸš— Navigate Here
                         </a>
                     </div>
                 </div>
@@ -179,7 +155,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     <h3 style="margin: 0 0 8px; color: #dc3545; font-size: 15px;">
                         <i class="fas fa-exclamation-triangle"></i> ${zone.name}
                     </h3>
-                    <p style="margin: 5px 0; font-size: 13px; color: #555;">⚠️ ${zone.risk}</p>
+                    <p style="margin: 5px 0; font-size: 13px; color: #555;">âš ï¸ ${zone.risk}</p>
                     <p style="margin: 8px 0 0; font-size: 12px; color: #666; font-style: italic;">
                         Evacuate immediately when alert is issued
                     </p>
@@ -217,7 +193,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Add scale control
     L.control.scale({ imperial: false, metric: true }).addTo(map);
 
-    console.log('✅ Map initialized successfully with', evacuationCenters.length, 'evacuation centers');
+    console.log('âœ… Map initialized successfully with', evacuationCenters.length, 'evacuation centers');
 });
 
 // Mobile menu toggle

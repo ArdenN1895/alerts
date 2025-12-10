@@ -260,7 +260,8 @@ const checkAuth = async () => {
   supabase.channel('incidents-channel')
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'incidents' }, () => loadIncidents())
     .subscribe();
-
+  
+  await checkAuth();
   loadIncidents();
 });
 

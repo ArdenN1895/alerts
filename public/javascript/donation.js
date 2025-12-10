@@ -24,6 +24,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   };
 
+await checkAuth();
+
 let deferredPrompt;
 
 window.addEventListener('beforeinstallprompt', (e) => {

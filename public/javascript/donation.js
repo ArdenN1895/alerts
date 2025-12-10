@@ -44,6 +44,8 @@ const checkAuth = async () => {
     }
   };
 
+await checkAuth();
+
 const burgerBtn = document.getElementById("burgerBtn");
 const mainNav = document.getElementById("mainNav");
 

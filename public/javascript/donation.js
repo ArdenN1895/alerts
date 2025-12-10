@@ -1,34 +1,13 @@
 import '../javascript/supabase.js';
 
-let supabaseClient = null;
-
-function waitForSupabase() {
-  return new Promise(resolve => {
-    if (window.supabase) return resolve(window.supabase);
-    window.addEventListener('supabase-ready', () => resolve(window.supabase), { once: true });
-    // Fallback
-    const check = setInterval(() => {
-      if (window.supabase) {
-        clearInterval(check);
-        resolve(window.supabase);
-      }
-    }, 100);
-    setTimeout(() => resolve(null), 10000);
-  });
-}
-
 document.addEventListener('DOMContentLoaded', async () => {
-  supabaseClient = await waitForSupabase();
-  if (!supabaseClient) {
-    alert('Failed to connect to database');
-    return;
-  }
-
+  
+  // Check authentication first
   const checkAuth = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const fakeAdmin = JSON.parse(localStorage.getItem('currentUser') || 'null');
-
+      
       if (session?.user) {
         await loadUserFromSupabase(session.user.id);
       } else if (fakeAdmin?.is_admin) {
@@ -36,11 +15,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       } else {
         alert('You must be logged in to view this page.');
         location.href = 'login.html';
+        return; // Stop execution
       }
     } catch (err) {
       console.error(err);
       alert('Session error. Redirecting to login.');
       location.href = 'login.html';
+      return; // Stop execution
     }
   };
 

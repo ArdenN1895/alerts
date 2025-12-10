@@ -1,4 +1,26 @@
 // Enhanced Live Broadcast JavaScript with Weather Overlay Map
+
+const checkAuth = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const fakeAdmin = JSON.parse(localStorage.getItem('currentUser') || 'null');
+
+      if (session?.user) {
+        await loadUserFromSupabase(session.user.id);
+      } else if (fakeAdmin?.is_admin) {
+        loadFakeAdmin(fakeAdmin);
+      } else {
+        alert('You must be logged in to view this page.');
+        location.href = 'login.html';
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Session error. Redirecting to login.');
+      location.href = 'login.html';
+    }
+  };
+
+await checkAuth();
 class LiveBroadcast {
     constructor() {
         this.apiKey = '54c135938e9d7cc39c5532187a963f46'; // OpenWeatherMap API Key

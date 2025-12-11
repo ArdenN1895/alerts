@@ -1,10 +1,27 @@
-// public/javascript/login.js - FINAL WORKING VERSION (2025)
 document.addEventListener('DOMContentLoaded', () => {
+
+  const togglePassword = () => {
+    const passwordInput = document.getElementById('password');
+    const toggleIcon = document.querySelector('.toggle-password');
+    
+    if (toggleIcon && passwordInput) {
+      toggleIcon.addEventListener('click', () => {
+        const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        passwordInput.setAttribute('type', type);
+        
+        toggleIcon.classList.toggle('fa-eye');
+        toggleIcon.classList.toggle('fa-eye-slash');
+      });
+    }
+  };
+
   const initLogin = async () => {
     if (!window.supabase) {
       alert('Connection failed. Please refresh the page.');
       return;
     }
+
+    togglePassword();
 
     const signinForm = document.getElementById('signinForm');
     if (!signinForm) return;
@@ -25,7 +42,6 @@ document.addEventListener('DOMContentLoaded', () => {
       submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing In...';
 
       try {
-        // === QUICK ADMIN BYPASS (Remove this in production!) ===
         if (usernameInput === 'admin' && password === 'admin123') {
           localStorage.setItem('currentUser', JSON.stringify({
             id: 'admin-001',
@@ -42,12 +58,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let loginEmail = usernameInput;
 
-        // If input has no @ → it's a username → lookup email
         if (!usernameInput.includes('@')) {
           const { data, error } = await window.supabase
             .from('users')
             .select('email')
-            .eq('username', usernameInput)  // Case-sensitive!
+            .eq('username', usernameInput)
             .maybeSingle();
 
           if (error && error.code !== 'PGRST116') throw error;
@@ -56,7 +71,6 @@ document.addEventListener('DOMContentLoaded', () => {
           loginEmail = data.email;
         }
 
-        // === Actual Supabase Auth Login ===
         const { data: authData, error: authError } = await window.supabase.auth.signInWithPassword({
           email: loginEmail,
           password
@@ -65,13 +79,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (authError) throw authError;
         if (!authData?.user) throw new Error('Login failed.');
 
-        // Update last login
         await window.supabase
           .from('users')
           .update({ last_login: new Date().toISOString() })
           .eq('id', authData.user.id);
 
-        // === Fetch full profile including is_admin ===
         const { data: profile, error: profileError } = await window.supabase
           .from('users')
           .select('username, first_name, last_name, role, is_admin')
@@ -82,7 +94,6 @@ document.addEventListener('DOMContentLoaded', () => {
           console.warn('Could not load profile:', profileError);
         }
 
-                // Save to localStorage
         localStorage.setItem('currentUser', JSON.stringify({
           id: authData.user.id,
           email: authData.user.email,
@@ -93,7 +104,6 @@ document.addEventListener('DOMContentLoaded', () => {
           is_admin: !!profile?.is_admin
         }));
 
-        // === SMART REDIRECT BASED ON ADMIN STATUS ===
         if (profile?.is_admin === true) {
           window.location.href = '/public/html/admin-dashboard.html';
         } else {
@@ -117,7 +127,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   };
 
-  // Initialize
   if (window.supabase) {
     initLogin();
   } else {

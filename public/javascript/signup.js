@@ -1,4 +1,3 @@
-// public/javascript/signup.js → OPTIMIZED VERSION with Address Storage
 document.addEventListener('DOMContentLoaded', () => {
   const initSignup = async () => {
     if (!window.supabase) {
@@ -39,8 +38,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!firstName || !lastName) {
           throw new Error("First and last name required");
         }
-        if (!phone || phone.length < 10) {
-          throw new Error("Valid phone number is required");
+        if (!phone || phone.length > 11) {
+          throw new Error("Valid phone number is required, ensure number is in 09 format");
         }
         if (!address || address.length < 5) {
           throw new Error("Complete address is required (minimum 5 characters)");

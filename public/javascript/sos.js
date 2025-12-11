@@ -1,9 +1,9 @@
-// javascript/sos.js - FIXED: Prevent showing modal for already-seen status updates
+// javascript/sos.js
 let sosCooldown = false;
 let currentUserSOSId = null;
 let realtimeChannel = null;
 let statusCheckInterval = null;
-let lastSeenSOSId = null; // Track which SOS we've already shown modal for
+let isModalCurrentlyOpen = false;
 
 async function getAddressFromCoords(lat, lng) {
   const key = `${lat.toFixed(6)},${lng.toFixed(6)}`;
@@ -42,22 +42,6 @@ async function getSupabaseClient() {
     window.addEventListener('supabase-ready', () => resolve(window.supabase), { once: true });
     setTimeout(() => window.supabase && resolve(window.supabase), 10000);
   });
-}
-
-// Load last seen SOS from localStorage
-function loadLastSeenSOS() {
-  const stored = localStorage.getItem('lastSeenSOSId');
-  if (stored) {
-    lastSeenSOSId = stored;
-    console.log('Last seen SOS ID:', lastSeenSOSId);
-  }
-}
-
-// Save last seen SOS to localStorage
-function saveLastSeenSOS(sosId) {
-  lastSeenSOSId = sosId;
-  localStorage.setItem('lastSeenSOSId', sosId);
-  console.log('Saved last seen SOS ID:', sosId);
 }
 
 function showSOSStatusModal() {
@@ -222,7 +206,7 @@ function showSOSStatusModal() {
         align-items: center;
         gap: 15px;
         opacity: 0.4;
-        transition: all 0.3s ease;
+        transition: all 0.5s ease;
       }
       
       .status-item.active {
@@ -240,6 +224,17 @@ function showSOSStatusModal() {
         font-size: 28px;
         color: white;
         flex-shrink: 0;
+        transition: all 0.5s ease;
+      }
+      
+      .status-item.active .status-icon {
+        animation: statusActivate 0.6s ease;
+      }
+      
+      @keyframes statusActivate {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.2); }
+        100% { transform: scale(1); }
       }
       
       .status-icon.waiting {
@@ -276,6 +271,11 @@ function showSOSStatusModal() {
         height: 2px;
         background: #ddd;
         margin-left: 30px;
+        transition: background 0.5s ease;
+      }
+      
+      .status-item.active + .status-divider {
+        background: #10b981;
       }
       
       .sos-status-message {
@@ -286,6 +286,7 @@ function showSOSStatusModal() {
         border-radius: 8px;
         font-size: 14px;
         color: #1e40af;
+        transition: all 0.5s ease;
       }
       
       @media (max-width: 480px) {
@@ -331,43 +332,78 @@ function showSOSStatusModal() {
     `;
     document.head.appendChild(style);
     
-    document.getElementById('sosModalClose').addEventListener('click', () => {
+    const closeModal = () => {
       modal.classList.remove('show');
-    });
+      isModalCurrentlyOpen = false;
+    };
     
-    modal.querySelector('.sos-modal-overlay').addEventListener('click', () => {
-      modal.classList.remove('show');
+    document.getElementById('sosModalClose').addEventListener('click', closeModal);
+    modal.querySelector('.sos-modal-overlay').addEventListener('click', closeModal);
+    
+    // Close on ESC key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && isModalCurrentlyOpen) {
+        closeModal();
+      }
     });
   }
   
   modal.classList.add('show');
+  isModalCurrentlyOpen = true;
 }
 
-async function updateSOSStatusUI(status) {
+async function updateSOSStatusUI(status, showNotification = false) {
   const waitingEl = document.getElementById('sosStatusWaiting');
   const dispatchedEl = document.getElementById('sosStatusDispatched');
   const arrivedEl = document.getElementById('sosStatusArrived');
   const messageEl = document.getElementById('sosStatusMessage');
   
+  if (!waitingEl) return; // Modal not created yet
+  
   [waitingEl, dispatchedEl, arrivedEl].forEach(el => el?.classList.remove('active'));
+  
+  let message = '';
   
   switch (status) {
     case 'waiting':
       waitingEl?.classList.add('active');
-      if (messageEl) messageEl.innerHTML = '<strong>✅ Your emergency request has been received.</strong><br>Help is being coordinated. Please stay safe.';
+      message = '<strong>✅ Your emergency request has been received.</strong><br>Help is being coordinated. Please stay safe.';
       break;
     case 'dispatched':
       waitingEl?.classList.add('active');
       dispatchedEl?.classList.add('active');
-      if (messageEl) messageEl.innerHTML = '<strong>🚨 Emergency responders have been dispatched!</strong><br>Help is on the way to your location.';
+      message = '<strong>🚨 Emergency responders have been dispatched!</strong><br>Help is on the way to your location.';
       break;
     case 'arrived':
       waitingEl?.classList.add('active');
       dispatchedEl?.classList.add('active');
       arrivedEl?.classList.add('active');
-      if (messageEl) messageEl.innerHTML = '<strong>✅ Help has arrived at your location!</strong><br>Emergency responders are there to assist you.';
+      message = '<strong>✅ Help has arrived at your location!</strong><br>Emergency responders are there to assist you.';
       break;
   }
+  
+  if (messageEl) {
+    messageEl.innerHTML = message;
+  }
+  
+  // Show browser notification only if requested
+  if (showNotification && Notification.permission === 'granted') {
+    const statusMessages = {
+      'waiting': 'Your emergency request is being processed',
+      'dispatched': 'Emergency responders are on the way!',
+      'arrived': 'Help has arrived at your location!'
+    };
+    
+    new Notification('SOS Status Update', {
+      body: statusMessages[status] || 'Status updated',
+      icon: '/img/icon-192.png',
+      badge: '/img/badge-72.png',
+      tag: 'sos-status',
+      requireInteraction: false
+    });
+  }
+  
+  console.log('✅ Status UI updated to:', status);
 }
 
 async function checkSOSStatus(supabase, userId) {
@@ -413,17 +449,11 @@ async function setupRealtimeUpdates(supabase, userId) {
 
   let lastKnownStatus = null;
 
-  // Initial status check - but don't show modal on page load
+  // Initial status check
   const initialStatus = await checkSOSStatus(supabase, userId);
   if (initialStatus) {
     lastKnownStatus = initialStatus.status;
     console.log('Initial status:', lastKnownStatus);
-    
-    // If this SOS hasn't been seen yet, mark it as seen without showing modal
-    if (lastSeenSOSId !== initialStatus.id) {
-      console.log('Marking initial SOS as seen without showing modal');
-      saveLastSeenSOS(initialStatus.id);
-    }
   }
 
   // Setup realtime subscription
@@ -440,45 +470,23 @@ async function setupRealtimeUpdates(supabase, userId) {
       async (payload) => {
         console.log('Real-time event received:', payload);
         
-        const sosId = payload.new?.id;
         const newStatus = payload.new?.status;
         const oldStatus = payload.old?.status || lastKnownStatus;
         
-        // Only show modal if this is a NEW status change we haven't seen
-        if (newStatus && newStatus !== oldStatus && sosId !== lastSeenSOSId) {
+        // Update status if changed
+        if (newStatus && newStatus !== oldStatus) {
           console.log(`Status changed: "${oldStatus}" → "${newStatus}"`);
           lastKnownStatus = newStatus;
           
-          // Update UI
-          await updateSOSStatusUI(newStatus);
-          
-          // Show notification
-          if (Notification.permission === 'granted') {
-            const statusMessages = {
-              'waiting': 'Your emergency request is being processed',
-              'dispatched': 'Emergency responders are on the way!',
-              'arrived': 'Help has arrived at your location!'
-            };
-            
-            new Notification('SOS Status Update', {
-              body: statusMessages[newStatus] || 'Status updated',
-              icon: '/img/icon-192.png',
-              badge: '/img/badge-72.png',
-              tag: 'sos-status',
-              requireInteraction: true
-            });
-          }
-          
-          // Show modal and mark as seen
-          showSOSStatusModal();
-          saveLastSeenSOS(sosId);
+          // Update UI (will only work if modal is open)
+          await updateSOSStatusUI(newStatus, true); // Show notification
         }
       }
     )
     .subscribe((status) => {
       console.log('Subscription status:', status);
       if (status === 'SUBSCRIBED') {
-        console.log('Successfully subscribed to real-time updates');
+        console.log('✅ Successfully subscribed to real-time updates');
       } else if (status === 'CHANNEL_ERROR') {
         console.error('Channel error - setting up polling fallback');
         setupPollingFallback(supabase, userId);
@@ -496,40 +504,17 @@ async function setupRealtimeUpdates(supabase, userId) {
 
 function setupPollingFallback(supabase, userId) {
   let lastPolledStatus = null;
-  let lastPolledSOSId = null;
 
   statusCheckInterval = setInterval(async () => {
     const statusData = await checkSOSStatus(supabase, userId);
     
-    // Only show modal if this is a NEW change we haven't seen
-    if (statusData && 
-        statusData.status !== lastPolledStatus && 
-        statusData.id !== lastSeenSOSId) {
-      
-      console.log('Polling detected NEW status change:', lastPolledStatus, '→', statusData.status);
+    // Update status if changed
+    if (statusData && statusData.status !== lastPolledStatus) {
+      console.log('Polling detected status change:', lastPolledStatus, '→', statusData.status);
       lastPolledStatus = statusData.status;
-      lastPolledSOSId = statusData.id;
       
-      await updateSOSStatusUI(statusData.status);
-      
-      if (Notification.permission === 'granted') {
-        const statusMessages = {
-          'waiting': 'Your emergency request is being processed',
-          'dispatched': 'Emergency responders are on the way!',
-          'arrived': 'Help has arrived at your location!'
-        };
-        
-        new Notification('SOS Status Update', {
-          body: statusMessages[statusData.status] || 'Status updated',
-          icon: '/img/icon-192.png',
-          badge: '/img/badge-72.png',
-          tag: 'sos-status',
-          requireInteraction: true
-        });
-      }
-      
-      showSOSStatusModal();
-      saveLastSeenSOS(statusData.id);
+      // Update UI (will only work if modal is open)
+      await updateSOSStatusUI(statusData.status, true); // Show notification
     }
   }, 10000); // Check every 10 seconds
 }
@@ -539,9 +524,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   const statusEl = document.getElementById('sosStatus');
 
   if (!sosButton) return;
-
-  // Load last seen SOS from storage
-  loadLastSeenSOS();
 
   const supabase = await getSupabaseClient();
   if (supabase) {
@@ -634,9 +616,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
           currentUserSOSId = sosData.id;
           console.log('SOS saved to database:', sosData.id);
-          
-          // Mark this new SOS as seen (since user just created it)
-          saveLastSeenSOS(sosData.id);
 
           statusEl.textContent = 'Sending emergency SMS...';
 
@@ -656,8 +635,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             statusEl.style.color = '#28a745';
             statusEl.textContent = `SOS sent to ${contact.firstName || 'your contact'}! Help is coming.`;
 
-            await updateSOSStatusUI('waiting');
-            setTimeout(() => showSOSStatusModal(), 1000);
+            // Show modal immediately after sending SOS
+            showSOSStatusModal();
+            await updateSOSStatusUI('waiting', false);
 
             sosCooldown = true;
             sosButton.disabled = true;
@@ -713,10 +693,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       const statusData = await checkSOSStatus(supabase, session.user.id);
 
       if (statusData) {
-        await updateSOSStatusUI(statusData.status);
-        showSOSStatusModal();
-        // When manually viewing, mark as seen
-        saveLastSeenSOS(statusData.id);
+        showSOSStatusModal(); // Open modal
+        await updateSOSStatusUI(statusData.status, false); // Update UI without notification
       } else {
         alert('No SOS requests found. Send an SOS first.');
       }

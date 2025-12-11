@@ -2,7 +2,6 @@ import '../javascript/supabase.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
   
-  // Check authentication first
   const checkAuth = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();

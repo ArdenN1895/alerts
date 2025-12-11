@@ -1,9 +1,62 @@
+// javascript/index.js - WITH AUTHENTICATION CHECK
+import './supabase.js';
+
+let supabaseClient = null;
+
+function waitForSupabase() {
+  return new Promise(resolve => {
+    if (window.supabase) return resolve(window.supabase);
+    window.addEventListener('supabase-ready', () => resolve(window.supabase), { once: true });
+    const check = setInterval(() => {
+      if (window.supabase) {
+        clearInterval(check);
+        resolve(window.supabase);
+      }
+    }, 100);
+    setTimeout(() => resolve(null), 10000);
+  });
+}
+
+// Authentication Check
+async function checkAuthentication() {
+  supabaseClient = await waitForSupabase();
+  if (!supabaseClient) {
+    alert('Failed to connect to database');
+    location.href = 'login.html';
+    return false;
+  }
+
+  try {
+    const { data: { session } } = await window.supabase.auth.getSession();
+    const fakeAdmin = JSON.parse(localStorage.getItem('currentUser') || 'null');
+
+    if (!session?.user && !fakeAdmin?.is_admin) {
+      alert('You must be logged in to access this page.');
+      location.href = 'login.html';
+      return false;
+    }
+
+    console.log('✅ User authenticated, access granted to home page');
+    return true;
+  } catch (err) {
+    console.error('Authentication error:', err);
+    alert('Session error. Redirecting to login.');
+    location.href = 'login.html';
+    return false;
+  }
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
+  // Check authentication first
+  const isAuthenticated = await checkAuthentication();
+  if (!isAuthenticated) return;
+
   const cardsContainer = document.querySelector('.cards');
   if (!cardsContainer) return;
 
   // Cache for addresses
   window.addressCache = new Map();
+  let allIncidents = []; // Store all incidents for filtering
 
   let supabase;
   try {
@@ -159,13 +212,56 @@ document.addEventListener('DOMContentLoaded', async () => {
     setTimeout(() => modal.classList.add('modal-active'), 10);
   };
 
+  // Filter and sort incidents
+  const filterAndSortIncidents = () => {
+    const searchInput = document.getElementById('incidentSearch');
+    const sortSelect = document.getElementById('incidentSort');
+    
+    if (!searchInput || !sortSelect) return allIncidents;
+
+    const searchTerm = searchInput.value.toLowerCase().trim();
+    let filtered = allIncidents;
+
+    // Filter by search term
+    if (searchTerm) {
+      filtered = allIncidents.filter(incident => {
+        const type = (incident.type || '').toLowerCase();
+        const description = (incident.description || '').toLowerCase();
+        return type.includes(searchTerm) || description.includes(searchTerm);
+      });
+    }
+
+    // Sort incidents
+    const sortValue = sortSelect.value;
+    filtered = [...filtered].sort((a, b) => {
+      switch (sortValue) {
+        case 'newest':
+          return new Date(b.created_at) - new Date(a.created_at);
+        case 'oldest':
+          return new Date(a.created_at) - new Date(b.created_at);
+        case 'type-asc':
+          return (a.type || '').localeCompare(b.type || '');
+        case 'type-desc':
+          return (b.type || '').localeCompare(a.type || '');
+        default:
+          return new Date(b.created_at) - new Date(a.created_at);
+      }
+    });
+
+    return filtered;
+  };
+
   const renderIncidents = async (incidents) => {
     if (!incidents.length) {
-      cardsContainer.innerHTML = '<p style="text-align:center;padding:50px;color:#999;">No incidents reported yet.</p>';
+      const searchInput = document.getElementById('incidentSearch');
+      const hasSearch = searchInput && searchInput.value.trim();
+      const message = hasSearch 
+        ? 'No incidents found matching your search.' 
+        : 'No incidents reported yet.';
+      cardsContainer.innerHTML = `<p style="text-align:center;padding:50px;color:#999;">${message}</p>`;
       return;
     }
 
-    incidents.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
     cardsContainer.innerHTML = '<p style="text-align:center;color:#666;">Loading locations...</p>';
 
     const cards = await Promise.all(incidents.map(async (incident) => {
@@ -212,7 +308,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.querySelectorAll('.incident-card').forEach((card) => {
       card.addEventListener('click', () => {
         const incidentId = card.getAttribute('data-incident-id');
-        const incident = incidents.find(i => i.id === incidentId);
+        const incident = allIncidents.find(i => i.id === incidentId);
         if (incident) showIncidentModal(incident);
       });
     });
@@ -231,7 +327,30 @@ document.addEventListener('DOMContentLoaded', async () => {
       cardsContainer.innerHTML = '<p style="text-align:center;color:#d32f2f;">Load failed.</p>';
       return;
     }
-    renderIncidents(data || []);
+    
+    allIncidents = data || [];
+    const filtered = filterAndSortIncidents();
+    renderIncidents(filtered);
+  };
+
+  // Setup search and sort listeners
+  const setupFilters = () => {
+    const searchInput = document.getElementById('incidentSearch');
+    const sortSelect = document.getElementById('incidentSort');
+
+    if (searchInput) {
+      searchInput.addEventListener('input', () => {
+        const filtered = filterAndSortIncidents();
+        renderIncidents(filtered);
+      });
+    }
+
+    if (sortSelect) {
+      sortSelect.addEventListener('change', () => {
+        const filtered = filterAndSortIncidents();
+        renderIncidents(filtered);
+      });
+    }
   };
 
   // Realtime
@@ -239,6 +358,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'incidents' }, () => loadIncidents())
     .subscribe();
 
+  setupFilters();
   loadIncidents();
 });
 
@@ -248,18 +368,21 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
+// Burger menu
 const burgerBtn = document.getElementById("burgerBtn");
 const mainNav = document.getElementById("mainNav");
 
-burgerBtn.addEventListener("click", (e) => {
+if (burgerBtn && mainNav) {
+  burgerBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     mainNav.classList.toggle("show");
     burgerBtn.classList.toggle("active");
-});
+  });
 
-document.addEventListener("click", (e) => {
+  document.addEventListener("click", (e) => {
     if (!mainNav.contains(e.target) && !burgerBtn.contains(e.target)) {
-        mainNav.classList.remove("show");
-        burgerBtn.classList.remove("active");
+      mainNav.classList.remove("show");
+      burgerBtn.classList.remove("active");
     }
-});
+  });
+}

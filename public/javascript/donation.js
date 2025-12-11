@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Check if user is authenticated
   try {
-    const { data: { session } } = await supabaseClient.auth.getSession();
+    const { data: { session } } = await window.supabase.auth.getSession();
     const fakeAdmin = JSON.parse(localStorage.getItem('currentUser') || 'null');
 
     // If no Supabase session and no fake admin, redirect to login

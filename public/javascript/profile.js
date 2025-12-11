@@ -160,12 +160,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   let phoneInput = document.getElementById('ecPhone').value.trim();
   let formattedPhone = phoneInput;
 
-  if (phoneInput.startsWith('09') && phoneInput.length === 11) {
-    formattedPhone = '+63' + phoneInput.slice(1);
-  } else if (!phoneInput.startsWith('+')) {
-    formattedPhone = '+63' + phoneInput.replace(/[^\d]/g, '');
-  }
-
+ if (phoneInput.length > 13) {
+  alert('Invalid Phone Number');
+} else if (phoneInput.startsWith('09') && phoneInput.length === 11) {
+  formattedPhone = '+63' + phoneInput.slice(1);
+} else if (!phoneInput.startsWith('+')) {
+  formattedPhone = '+63' + phoneInput.replace(/[^\d]/g, '');
+}
+    
   const newContact = {
     firstName: document.getElementById('ecFirstName').value.trim(),
     lastName: document.getElementById('ecLastName').value.trim(),

@@ -24,20 +24,17 @@
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
     try {
-      // Try absolute path first
       let registration = await navigator.serviceWorker.register('/service-worker.js', {
         scope: '/'
       });
       console.log('✅ Service Worker registered:', registration.scope);
       
-      // Wait for it to be ready
       await navigator.serviceWorker.ready;
       console.log('✅ Service Worker ready');
       
     } catch (err) {
       console.error('❌ Service Worker registration failed:', err);
       
-      // Fallback: try relative path
       try {
         const registration = await navigator.serviceWorker.register('../../../service-worker.js', {
           scope: '/'
@@ -85,9 +82,10 @@ if ('serviceWorker' in navigator) {
 
                 <div class="form-group">
                     <label for="password">Password *</label>
-                    <div class="input-with-icon">
+                    <div class="input-with-icon password-wrapper">
                         <i class="fas fa-lock"></i>
                         <input type="password" id="password" name="password" placeholder="Enter your password" required>
+                        <i class="fas fa-eye toggle-password"></i>
                     </div>
                     <span class="error-message" id="passwordError"></span>
                 </div>

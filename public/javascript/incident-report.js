@@ -204,7 +204,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           icon: '/public/img/icon-192.png',
           badge: '/public/img/badge-72.png',
           image: photoUrl || undefined,
-          url: '/public/html/map.html',
+          url: '/public/html/index.html',
           data: {
             incidentId: insertedIncident.id,
             incidentType: incidentType,

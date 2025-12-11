@@ -1,9 +1,38 @@
 document.addEventListener('DOMContentLoaded', () => {
+  const initPasswordToggles = () => {
+    const passwordToggle = document.querySelector('.toggle-password');
+    const passwordInput = document.getElementById('password');
+    
+    if (passwordToggle && passwordInput) {
+      passwordToggle.addEventListener('click', () => {
+        const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        passwordInput.setAttribute('type', type);
+        passwordToggle.classList.toggle('fa-eye');
+        passwordToggle.classList.toggle('fa-eye-slash');
+      });
+    }
+    
+    const confirmToggle = document.querySelector('.toggle-confirm-password');
+    const confirmInput = document.getElementById('confirmPassword');
+    
+    if (confirmToggle && confirmInput) {
+      confirmToggle.addEventListener('click', () => {
+        const type = confirmInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        confirmInput.setAttribute('type', type);
+        confirmToggle.classList.toggle('fa-eye');
+        confirmToggle.classList.toggle('fa-eye-slash');
+      });
+    }
+  };
+
   const initSignup = async () => {
     if (!window.supabase) {
       alert('Connection failed. Please refresh the page.');
       return;
     }
+
+    initPasswordToggles();
+
     const form = document.getElementById('signupForm');
     if (!form) return;
     
@@ -23,7 +52,6 @@ document.addEventListener('DOMContentLoaded', () => {
         let phone          = document.getElementById('phone').value.trim();
         const address      = document.getElementById('address').value.trim();
         
-        // ===== ENHANCED VALIDATION =====
         
         // Password validation
         if (password !== confirmPassword) {
@@ -43,26 +71,20 @@ document.addEventListener('DOMContentLoaded', () => {
           throw new Error("First and last name required");
         }
         
-        // ===== PHONE NUMBER VALIDATION (FIXED) =====
+        // PHONE NUMBER VALIDATION
         if (!phone) {
           throw new Error("Phone number is required");
         }
         
-        // Remove all non-digit characters for validation
         const digitsOnly = phone.replace(/\D/g, '');
         
-        // Check if it's a valid Philippine mobile number
         if (digitsOnly.startsWith('09') && digitsOnly.length === 11) {
-          // Valid 09XX format (11 digits)
-          phone = '+63' + digitsOnly.slice(1); // Convert to +63 format
+          phone = '+63' + digitsOnly.slice(1);
         } else if (digitsOnly.startsWith('639') && digitsOnly.length === 12) {
-          // Already in 639 format
           phone = '+' + digitsOnly;
         } else if (digitsOnly.startsWith('63') && digitsOnly.length === 12) {
-          // 63 format without +
           phone = '+' + digitsOnly;
         } else if (digitsOnly.length === 10 && digitsOnly.startsWith('9')) {
-          // 9XX format (missing leading 0)
           phone = '+63' + digitsOnly;
         } else {
           throw new Error("Invalid phone number. Use format: 09XXXXXXXXX (11 digits)");
@@ -70,14 +92,11 @@ document.addEventListener('DOMContentLoaded', () => {
         
         console.log('✅ Phone validated and formatted:', phone);
         
-        // Address validation
         if (!address || address.length < 5) {
           throw new Error("Complete address is required (minimum 5 characters)");
         }
         
         // ===== SUPABASE SIGNUP =====
-        
-        // Step 1: Create auth user
         const { data, error: authError } = await window.supabase.auth.signUp({
           email,
           password,
@@ -95,7 +114,6 @@ document.addEventListener('DOMContentLoaded', () => {
         
         console.log("✅ Auth user created:", data.user.id);
         
-        // Step 2: UPSERT user profile with formatted phone
         const { error: profileError } = await window.supabase
           .from('users')
           .upsert({
@@ -104,7 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
             email           : email,
             first_name      : firstName,
             last_name       : lastName,
-            phone           : phone,  // Now properly formatted as +63XXXXXXXXXX
+            phone           : phone,
             address         : address,             
             emergency_contact: null,           
             role            : 'user',         
@@ -121,14 +139,11 @@ document.addEventListener('DOMContentLoaded', () => {
         
         console.log("✅ User profile saved to database");
         
-        // SUCCESS - Show proper success message
         alert("Account created successfully! Please proceed to login.");
         window.location.href = '/public/html/login.html';
         
       } catch (error) {
         console.error("Signup error:", error);
-        
-        // Show the actual error message, not "Account Created!"
         const errorMessage = error.message || "An unknown error occurred";
         alert("Error: " + errorMessage);
         
@@ -139,7 +154,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   };
   
-  // Initialize when Supabase is ready
   if (window.supabase) {
     initSignup();
   } else {

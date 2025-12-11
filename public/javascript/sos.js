@@ -1,4 +1,3 @@
-// javascript/sos.js
 let sosCooldown = false;
 let currentUserSOSId = null;
 let realtimeChannel = null;
@@ -386,7 +385,7 @@ async function updateSOSStatusUI(status, showNotification = false) {
     messageEl.innerHTML = message;
   }
   
-  // Show browser notification only if requested
+  // Show browser notification
   if (showNotification && Notification.permission === 'granted') {
     const statusMessages = {
       'waiting': 'Your emergency request is being processed',
@@ -473,13 +472,13 @@ async function setupRealtimeUpdates(supabase, userId) {
         const newStatus = payload.new?.status;
         const oldStatus = payload.old?.status || lastKnownStatus;
         
-        // Update status if changed
+        
         if (newStatus && newStatus !== oldStatus) {
           console.log(`Status changed: "${oldStatus}" → "${newStatus}"`);
           lastKnownStatus = newStatus;
           
-          // Update UI (will only work if modal is open)
-          await updateSOSStatusUI(newStatus, true); // Show notification
+         
+          await updateSOSStatusUI(newStatus, true);
         }
       }
     )
@@ -496,7 +495,7 @@ async function setupRealtimeUpdates(supabase, userId) {
       }
     });
 
-  // Polling fallback (every 10 seconds)
+  
   setupPollingFallback(supabase, userId);
 
   return realtimeChannel;
@@ -508,12 +507,12 @@ function setupPollingFallback(supabase, userId) {
   statusCheckInterval = setInterval(async () => {
     const statusData = await checkSOSStatus(supabase, userId);
     
-    // Update status if changed
+    
     if (statusData && statusData.status !== lastPolledStatus) {
       console.log('Polling detected status change:', lastPolledStatus, '→', statusData.status);
       lastPolledStatus = statusData.status;
       
-      // Update UI (will only work if modal is open)
+      
       await updateSOSStatusUI(statusData.status, true); // Show notification
     }
   }, 10000); // Check every 10 seconds
@@ -635,7 +634,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             statusEl.style.color = '#28a745';
             statusEl.textContent = `SOS sent to ${contact.firstName || 'your contact'}! Help is coming.`;
 
-            // Show modal immediately after sending SOS
+            // Show modal
             showSOSStatusModal();
             await updateSOSStatusUI('waiting', false);
 
@@ -693,8 +692,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       const statusData = await checkSOSStatus(supabase, session.user.id);
 
       if (statusData) {
-        showSOSStatusModal(); // Open modal
-        await updateSOSStatusUI(statusData.status, false); // Update UI without notification
+        showSOSStatusModal(); 
+        await updateSOSStatusUI(statusData.status, false); 
       } else {
         alert('No SOS requests found. Send an SOS first.');
       }

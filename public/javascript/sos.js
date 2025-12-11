@@ -1,8 +1,9 @@
-// javascript/sos.js - FIXED Real-time Updates with Proper Channel Handling
+// javascript/sos.js - FIXED: Prevent showing modal for already-seen status updates
 let sosCooldown = false;
 let currentUserSOSId = null;
 let realtimeChannel = null;
 let statusCheckInterval = null;
+let lastSeenSOSId = null; // Track which SOS we've already shown modal for
 
 async function getAddressFromCoords(lat, lng) {
   const key = `${lat.toFixed(6)},${lng.toFixed(6)}`;
@@ -41,6 +42,22 @@ async function getSupabaseClient() {
     window.addEventListener('supabase-ready', () => resolve(window.supabase), { once: true });
     setTimeout(() => window.supabase && resolve(window.supabase), 10000);
   });
+}
+
+// Load last seen SOS from localStorage
+function loadLastSeenSOS() {
+  const stored = localStorage.getItem('lastSeenSOSId');
+  if (stored) {
+    lastSeenSOSId = stored;
+    console.log('Last seen SOS ID:', lastSeenSOSId);
+  }
+}
+
+// Save last seen SOS to localStorage
+function saveLastSeenSOS(sosId) {
+  lastSeenSOSId = sosId;
+  localStorage.setItem('lastSeenSOSId', sosId);
+  console.log('Saved last seen SOS ID:', sosId);
 }
 
 function showSOSStatusModal() {
@@ -337,18 +354,18 @@ async function updateSOSStatusUI(status) {
   switch (status) {
     case 'waiting':
       waitingEl?.classList.add('active');
-      if (messageEl) messageEl.innerHTML = '<strong> Your emergency request has been received.</strong><br>Help is being coordinated. Please stay safe.';
+      if (messageEl) messageEl.innerHTML = '<strong>✅ Your emergency request has been received.</strong><br>Help is being coordinated. Please stay safe.';
       break;
     case 'dispatched':
       waitingEl?.classList.add('active');
       dispatchedEl?.classList.add('active');
-      if (messageEl) messageEl.innerHTML = '<strong>Emergency responders have been dispatched!</strong><br>Help is on the way to your location.';
+      if (messageEl) messageEl.innerHTML = '<strong>🚨 Emergency responders have been dispatched!</strong><br>Help is on the way to your location.';
       break;
     case 'arrived':
       waitingEl?.classList.add('active');
       dispatchedEl?.classList.add('active');
       arrivedEl?.classList.add('active');
-      if (messageEl) messageEl.innerHTML = '<strong>Help has arrived at your location!</strong><br>Emergency responders are there to assist you.';
+      if (messageEl) messageEl.innerHTML = '<strong>✅ Help has arrived at your location!</strong><br>Emergency responders are there to assist you.';
       break;
   }
 }
@@ -396,11 +413,17 @@ async function setupRealtimeUpdates(supabase, userId) {
 
   let lastKnownStatus = null;
 
-  // Initial status check
+  // Initial status check - but don't show modal on page load
   const initialStatus = await checkSOSStatus(supabase, userId);
   if (initialStatus) {
     lastKnownStatus = initialStatus.status;
     console.log('Initial status:', lastKnownStatus);
+    
+    // If this SOS hasn't been seen yet, mark it as seen without showing modal
+    if (lastSeenSOSId !== initialStatus.id) {
+      console.log('Marking initial SOS as seen without showing modal');
+      saveLastSeenSOS(initialStatus.id);
+    }
   }
 
   // Setup realtime subscription
@@ -417,11 +440,13 @@ async function setupRealtimeUpdates(supabase, userId) {
       async (payload) => {
         console.log('Real-time event received:', payload);
         
+        const sosId = payload.new?.id;
         const newStatus = payload.new?.status;
         const oldStatus = payload.old?.status || lastKnownStatus;
         
-        if (newStatus && newStatus !== oldStatus) {
-          console.log(`Status changed: "${oldStatus}" "${newStatus}"`);
+        // Only show modal if this is a NEW status change we haven't seen
+        if (newStatus && newStatus !== oldStatus && sosId !== lastSeenSOSId) {
+          console.log(`Status changed: "${oldStatus}" → "${newStatus}"`);
           lastKnownStatus = newStatus;
           
           // Update UI
@@ -444,8 +469,9 @@ async function setupRealtimeUpdates(supabase, userId) {
             });
           }
           
-          // Show modal
+          // Show modal and mark as seen
           showSOSStatusModal();
+          saveLastSeenSOS(sosId);
         }
       }
     )
@@ -470,13 +496,19 @@ async function setupRealtimeUpdates(supabase, userId) {
 
 function setupPollingFallback(supabase, userId) {
   let lastPolledStatus = null;
+  let lastPolledSOSId = null;
 
   statusCheckInterval = setInterval(async () => {
     const statusData = await checkSOSStatus(supabase, userId);
     
-    if (statusData && statusData.status !== lastPolledStatus) {
-      console.log('Polling detected status change:', lastPolledStatus, '→', statusData.status);
+    // Only show modal if this is a NEW change we haven't seen
+    if (statusData && 
+        statusData.status !== lastPolledStatus && 
+        statusData.id !== lastSeenSOSId) {
+      
+      console.log('Polling detected NEW status change:', lastPolledStatus, '→', statusData.status);
       lastPolledStatus = statusData.status;
+      lastPolledSOSId = statusData.id;
       
       await updateSOSStatusUI(statusData.status);
       
@@ -497,6 +529,7 @@ function setupPollingFallback(supabase, userId) {
       }
       
       showSOSStatusModal();
+      saveLastSeenSOS(statusData.id);
     }
   }, 10000); // Check every 10 seconds
 }
@@ -506,6 +539,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   const statusEl = document.getElementById('sosStatus');
 
   if (!sosButton) return;
+
+  // Load last seen SOS from storage
+  loadLastSeenSOS();
 
   const supabase = await getSupabaseClient();
   if (supabase) {
@@ -598,6 +634,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
           currentUserSOSId = sosData.id;
           console.log('SOS saved to database:', sosData.id);
+          
+          // Mark this new SOS as seen (since user just created it)
+          saveLastSeenSOS(sosData.id);
 
           statusEl.textContent = 'Sending emergency SMS...';
 
@@ -676,6 +715,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (statusData) {
         await updateSOSStatusUI(statusData.status);
         showSOSStatusModal();
+        // When manually viewing, mark as seen
+        saveLastSeenSOS(statusData.id);
       } else {
         alert('No SOS requests found. Send an SOS first.');
       }

@@ -1,6 +1,56 @@
-// javascript/incident-report.js 
+// javascript/incident-report.js - WITH ENHANCED AUTHENTICATION CHECK
+import './supabase.js';
+
+let supabaseClient = null;
+
+function waitForSupabase() {
+  return new Promise(resolve => {
+    if (window.supabase) return resolve(window.supabase);
+    window.addEventListener('supabase-ready', () => resolve(window.supabase), { once: true });
+    const check = setInterval(() => {
+      if (window.supabase) {
+        clearInterval(check);
+        resolve(window.supabase);
+      }
+    }, 100);
+    setTimeout(() => resolve(null), 10000);
+  });
+}
+
+// Authentication Check
+async function checkAuthentication() {
+  supabaseClient = await waitForSupabase();
+  if (!supabaseClient) {
+    alert('Failed to connect to database');
+    location.href = 'login.html';
+    return false;
+  }
+
+  try {
+    const { data: { session } } = await window.supabase.auth.getSession();
+    const fakeAdmin = JSON.parse(localStorage.getItem('currentUser') || 'null');
+
+    if (!session?.user && !fakeAdmin?.is_admin) {
+      alert('You must be logged in to access this page.');
+      location.href = 'login.html';
+      return false;
+    }
+
+    console.log('✅ User authenticated, access granted to incident report page');
+    return session?.user || fakeAdmin;
+  } catch (err) {
+    console.error('Authentication error:', err);
+    alert('Session error. Redirecting to login.');
+    location.href = 'login.html';
+    return false;
+  }
+}
 
 document.addEventListener('DOMContentLoaded', async () => {
+  // Check authentication first
+  const currentUser = await checkAuthentication();
+  if (!currentUser) return;
+
   const form = document.getElementById('incidentForm');
   const statusMessage = document.getElementById('statusMessage');
   const locationInput = document.getElementById('locationInput');
@@ -12,39 +62,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   let currentPosition = null;
   let photoFile = null;
-
-  const supabase = await new Promise(r => {
-    if (window.supabase) return r(window.supabase);
-    window.addEventListener('supabase-ready', () => r(window.supabase), { once: true });
-    setTimeout(() => window.supabase && r(window.supabase), 10000);
-  });
-
-  if (!supabase) return showStatus('Connection failed.', 'error');
-
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return location.href = '/public/html/login.html';
-
-  const checkAuth = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const fakeAdmin = JSON.parse(localStorage.getItem('currentUser') || 'null');
-
-      if (session?.user) {
-        await loadUserFromSupabase(session.user.id);
-      } else if (fakeAdmin?.is_admin) {
-        loadFakeAdmin(fakeAdmin);
-      } else {
-        alert('You must be logged in to view this page.');
-        location.href = 'login.html';
-      }
-    } catch (err) {
-      console.error(err);
-      alert('Session error. Redirecting to login.');
-      location.href = 'login.html';
-    }
-  };
-
-  await checkAuth();
 
   // Photo handling
   photoInput.addEventListener('change', () => {
@@ -75,7 +92,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       pos => {
         currentPosition = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         locationInput.value = `${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}`;
-        getLocationBtn.textContent = 'âœ“ Location Captured';
+        getLocationBtn.textContent = '✓ Location Captured';
         getLocationBtn.style.background = '#4caf50';
       },
       () => {
@@ -90,14 +107,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     );
   };
 
-  // ==================== FORM SUBMISSION ====================
+  // Form submission
   form.onsubmit = async e => {
     e.preventDefault();
     
     const incidentType = document.getElementById('type').value;
     const description = document.getElementById('description').value.trim();
 
-    // Validation
     if (!incidentType || !description) {
       return showStatus('Please fill in all required fields', 'error');
     }
@@ -106,7 +122,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       return showStatus('Please provide a location', 'error');
     }
 
-    // Disable submit button to prevent double submission
     const submitBtn = form.querySelector('.submit-btn');
     const originalBtnText = submitBtn.textContent;
     submitBtn.disabled = true;
@@ -115,16 +130,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     showStatus('Uploading incident report...', 'loading');
 
     try {
+      // Get user from Supabase
+      const { data: { user } } = await window.supabase.auth.getUser();
+      const userId = user?.id || currentUser.id || 'anonymous';
+
       let photoUrl = null;
 
-      // ==================== UPLOAD PHOTO ====================
+      // Upload photo
       if (photoFile) {
         showStatus('Uploading photo...', 'loading');
         
         const ext = photoFile.name.split('.').pop();
-        const filename = `${user.id}/${Date.now()}.${ext}`;
+        const filename = `${userId}/${Date.now()}.${ext}`;
         
-        const { data: uploadData, error: uploadError } = await supabase.storage
+        const { data: uploadData, error: uploadError } = await window.supabase.storage
           .from('incident-photos')
           .upload(filename, photoFile, { upsert: true });
 
@@ -132,16 +151,16 @@ document.addEventListener('DOMContentLoaded', async () => {
           console.error('Photo upload error:', uploadError);
           showStatus('Warning: Photo upload failed, continuing without photo', 'warning');
         } else {
-          const { data: { publicUrl } } = supabase.storage
+          const { data: { publicUrl } } = window.supabase.storage
             .from('incident-photos')
             .getPublicUrl(filename);
           
           photoUrl = publicUrl;
-          console.log('âœ… Photo uploaded:', photoUrl);
+          console.log('✅ Photo uploaded:', photoUrl);
         }
       }
 
-      // ==================== SAVE TO DATABASE ====================
+      // Save to database
       showStatus('Saving incident report...', 'loading');
 
       const incidentData = {
@@ -149,10 +168,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         description: description,
         location: currentPosition || { manual: locationInput.value.trim() },
         photo_url: photoUrl,
-        reported_by: user.id
+        reported_by: userId
       };
 
-      const { data: insertedIncident, error: dbError } = await supabase
+      const { data: insertedIncident, error: dbError } = await window.supabase
         .from('incidents')
         .insert(incidentData)
         .select()
@@ -160,20 +179,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       if (dbError) throw dbError;
 
-      console.log('âœ… Incident saved to database:', insertedIncident.id);
+      console.log('✅ Incident saved to database:', insertedIncident.id);
 
-      // ==================== SEND PUSH NOTIFICATIONS ====================
+      // Send push notifications
       showStatus('Notifying users...', 'loading');
 
       try {
-        // Get fresh session token
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        const { data: { session }, error: sessionError } = await window.supabase.auth.getSession();
 
         if (sessionError || !session?.access_token) {
-          console.warn('âš ï¸ Session error, push may fail:', sessionError);
+          console.warn('⚠️ Session error, push may fail:', sessionError);
         }
 
-        // Format location for notification
         let locationText = 'San Pablo City';
         if (currentPosition) {
           locationText = `${currentPosition.lat.toFixed(4)}, ${currentPosition.lng.toFixed(4)}`;
@@ -181,14 +198,13 @@ document.addEventListener('DOMContentLoaded', async () => {
           locationText = locationInput.value.trim().substring(0, 30);
         }
 
-        // Prepare notification payload
         const notificationPayload = {
-          title: 'ðŸš¨ New Incident Reported',
+          title: '🚨 New Incident Reported',
           body: `${incidentType} reported in ${locationText}. ${description.substring(0, 80)}${description.length > 80 ? '...' : ''}`,
           icon: '/public/img/icon-192.png',
           badge: '/public/img/badge-72.png',
           image: photoUrl || undefined,
-          url: '/public/html/map.html', // Open map to show incident location
+          url: '/public/html/map.html',
           data: {
             incidentId: insertedIncident.id,
             incidentType: incidentType,
@@ -196,9 +212,8 @@ document.addEventListener('DOMContentLoaded', async () => {
           }
         };
 
-        console.log('ðŸ“¤ Sending push notification...', notificationPayload);
+        console.log('📤 Sending push notification...', notificationPayload);
 
-        // Call Edge Function
         const pushResponse = await fetch('https://oqmfjwlpuwfpbnpiavhp.supabase.co/functions/v1/send-push', {
           method: 'POST',
           headers: {
@@ -210,25 +225,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         const pushResult = await pushResponse.json();
-        console.log('ðŸ“Š Push notification result:', pushResult);
+        console.log('📮 Push notification result:', pushResult);
 
         if (pushResponse.ok) {
           if (pushResult.delivered_to > 0) {
-            console.log(`âœ… Push notifications sent to ${pushResult.delivered_to} user(s)`);
+            console.log(`✅ Push notifications sent to ${pushResult.delivered_to} user(s)`);
           } else {
-            console.warn('âš ï¸ No users subscribed to push notifications');
+            console.warn('⚠️ No users subscribed to push notifications');
           }
         } else {
-          console.error('âŒ Push notification failed:', pushResult.error);
+          console.error('❌ Push notification failed:', pushResult.error);
         }
 
       } catch (pushError) {
-        // Don't fail the whole submission if push fails
-        console.error('âš ï¸ Push notification error (non-critical):', pushError);
+        console.error('⚠️ Push notification error (non-critical):', pushError);
       }
 
-      // ==================== SUCCESS ====================
-      showStatus('âœ… Report submitted successfully! Thank you for helping keep San Pablo City safe.', 'success');
+      // Success
+      showStatus('✅ Report submitted successfully! Thank you for helping keep San Pablo City safe.', 'success');
 
       // Reset form after 2 seconds
       setTimeout(() => {
@@ -247,22 +261,20 @@ document.addEventListener('DOMContentLoaded', async () => {
       }, 2000);
 
     } catch (err) {
-      console.error('âŒ Submission error:', err);
+      console.error('❌ Submission error:', err);
       showStatus('Error: ' + (err.message || 'Failed to submit report. Please try again.'), 'error');
       
-      // Re-enable submit button on error
       submitBtn.disabled = false;
       submitBtn.textContent = originalBtnText;
     }
   };
 
-  // ==================== STATUS MESSAGE ====================
+  // Status message helper
   function showStatus(msg, type = 'info') {
     statusMessage.textContent = msg;
     statusMessage.className = 'status-message ' + type;
     statusMessage.style.display = 'block';
 
-    // Auto-hide success messages after 5 seconds
     if (type === 'success') {
       setTimeout(() => {
         statusMessage.style.display = 'none';
@@ -277,3 +289,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }, 1000);
 });
+
+// Burger menu
+const burgerBtn = document.getElementById("burgerBtn");
+const mainNav = document.getElementById("mainNav");
+
+if (burgerBtn && mainNav) {
+    burgerBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        mainNav.classList.toggle("show");
+        burgerBtn.classList.toggle("active");
+    });
+
+    document.addEventListener("click", (e) => {
+        if (!mainNav.contains(e.target) && !burgerBtn.contains(e.target)) {
+            mainNav.classList.remove("show");
+            burgerBtn.classList.remove("active");
+        }
+    });
+}

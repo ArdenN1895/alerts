@@ -122,7 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log("✅ User profile saved to database");
         
         // SUCCESS - Show proper success message
-        alert("Account created successfully! Please check your email to verify your account.");
+        alert("Account created successfully! Please proceed to login.");
         window.location.href = '/public/html/login.html';
         
       } catch (error) {

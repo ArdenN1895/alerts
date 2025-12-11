@@ -1,4 +1,55 @@
+// javascript/news-outlet.js - WITH AUTHENTICATION CHECK
+import './supabase.js';
+
+let supabaseClient = null;
+
+function waitForSupabase() {
+  return new Promise(resolve => {
+    if (window.supabase) return resolve(window.supabase);
+    window.addEventListener('supabase-ready', () => resolve(window.supabase), { once: true });
+    const check = setInterval(() => {
+      if (window.supabase) {
+        clearInterval(check);
+        resolve(window.supabase);
+      }
+    }, 100);
+    setTimeout(() => resolve(null), 10000);
+  });
+}
+
+// Authentication Check
+async function checkAuthentication() {
+  supabaseClient = await waitForSupabase();
+  if (!supabaseClient) {
+    alert('Failed to connect to database');
+    return false;
+  }
+
+  try {
+    const { data: { session } } = await window.supabase.auth.getSession();
+    const fakeAdmin = JSON.parse(localStorage.getItem('currentUser') || 'null');
+
+    if (!session?.user && !fakeAdmin?.is_admin) {
+      alert('You must be logged in to access this page.');
+      location.href = 'login.html';
+      return false;
+    }
+
+    console.log('✅ User authenticated, access granted to news outlet page');
+    return true;
+  } catch (err) {
+    console.error('Authentication error:', err);
+    alert('Session error. Redirecting to login.');
+    location.href = 'login.html';
+    return false;
+  }
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
+    // Check authentication first
+    const isAuthenticated = await checkAuthentication();
+    if (!isAuthenticated) return;
+
     const newsGrid = document.getElementById('news-grid');
     const loadingEl = document.getElementById('loading');
     const noResultsEl = document.getElementById('no-results');
@@ -20,7 +71,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Function to fetch and parse news from ABS-CBN Calamity Hub
     async function fetchNewsFromAbsCbn() {
         try {
-            // Fetch through CORS proxy
             const response = await fetch(CORS_PROXY + encodeURIComponent(ABS_CBN_URL));
             
             if (!response.ok) {
@@ -28,43 +78,29 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             const html = await response.text();
-            
-            // Parse HTML to extract articles
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, 'text/html');
             
-            // Extract articles - adjust selectors based on actual ABS-CBN structure
             const articles = [];
-            
-            // Try multiple possible selectors for articles
             let articleElements = doc.querySelectorAll('article, .article, .news-item, .post, .story');
             
-            // If no articles found with those selectors, try to find by common patterns
             if (articleElements.length === 0) {
                 articleElements = doc.querySelectorAll('[class*="article"], [class*="news"], [class*="story"]');
             }
 
             articleElements.forEach((article, index) => {
-                if (index >= 20) return; // Limit to 20 articles
+                if (index >= 20) return;
 
                 try {
-                    // Extract title
                     let title = article.querySelector('h1, h2, h3, h4, .title, [class*="title"]')?.textContent?.trim();
-                    
-                    // Extract description
                     let description = article.querySelector('p, .excerpt, .description, [class*="excerpt"]')?.textContent?.trim();
-                    
-                    // Extract date
                     let dateElement = article.querySelector('time, .date, [class*="date"]');
                     let dateStr = dateElement?.getAttribute('datetime') || dateElement?.textContent?.trim();
-                    
-                    // Extract URL
                     let url = article.querySelector('a')?.href;
                     if (url && !url.startsWith('http')) {
                         url = 'https://www.abs-cbn.com' + url;
                     }
                     
-                    // Detect calamity type from title and description
                     const text = (title + ' ' + description).toLowerCase();
                     let type = 'Calamity';
                     
@@ -89,7 +125,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             });
 
-            // If scraping fails or returns no results, use sample data as fallback
             if (articles.length === 0) {
                 console.warn('No articles scraped, using sample data');
                 return getSampleData();
@@ -98,7 +133,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             return articles;
         } catch (err) {
             console.error('Fetch error:', err);
-            // Fallback to sample data on error
             return getSampleData();
         }
     }
@@ -190,7 +224,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const itemType = item.type.toLowerCase();
                 const filter = filterType.toLowerCase();
                 
-                // Match variations of calamity types
                 if (filter === 'typhoon') {
                     return itemType.includes('typhoon') || itemType.includes('cyclone') || 
                            itemType.includes('storm') || itemType.includes('depression');
@@ -206,7 +239,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
         }
         
-        currentPage = 1; // Reset to first page
+        currentPage = 1;
         renderNewsItems(filteredNewsItems);
     }
 
@@ -216,13 +249,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         filterButtons.forEach(btn => {
             btn.addEventListener('click', () => {
-                // Remove active class from all buttons
                 filterButtons.forEach(b => b.classList.remove('active'));
-                
-                // Add active class to clicked button
                 btn.classList.add('active');
-                
-                // Apply filter
                 const filterType = btn.getAttribute('data-filter');
                 applyFilter(filterType);
             });
@@ -295,7 +323,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <span><i class="fas fa-calendar-alt"></i> ${date}</span>
                     </div>
                     <a href="${item.url}" target="_blank" class="news-link">
-                        Read Full Report â†’
+                        Read Full Report →
                     </a>
                 </div>
             `;
@@ -382,7 +410,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             allNewsItems = newItems;
             lastUpdateTime = new Date();
             
-            // Reapply current filter
             applyFilter(currentFilter);
             
             if (wasUpdated) {
@@ -455,15 +482,17 @@ window.addEventListener('beforeinstallprompt', (e) => {
 const burgerBtn = document.getElementById("burgerBtn");
 const mainNav = document.getElementById("mainNav");
 
-burgerBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    mainNav.classList.toggle("show");
-    burgerBtn.classList.toggle("active");
-});
+if (burgerBtn && mainNav) {
+    burgerBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        mainNav.classList.toggle("show");
+        burgerBtn.classList.toggle("active");
+    });
 
-document.addEventListener("click", (e) => {
-    if (!mainNav.contains(e.target) && !burgerBtn.contains(e.target)) {
-        mainNav.classList.remove("show");
-        burgerBtn.classList.remove("active");
-    }
-});
+    document.addEventListener("click", (e) => {
+        if (!mainNav.contains(e.target) && !burgerBtn.contains(e.target)) {
+            mainNav.classList.remove("show");
+            burgerBtn.classList.remove("active");
+        }
+    });
+}

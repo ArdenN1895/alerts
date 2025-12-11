@@ -1,13 +1,59 @@
+// javascript/live-broadcast.js - WITH AUTHENTICATION CHECK
+import './supabase.js';
+
+let supabaseClient = null;
+
+function waitForSupabase() {
+  return new Promise(resolve => {
+    if (window.supabase) return resolve(window.supabase);
+    window.addEventListener('supabase-ready', () => resolve(window.supabase), { once: true });
+    const check = setInterval(() => {
+      if (window.supabase) {
+        clearInterval(check);
+        resolve(window.supabase);
+      }
+    }, 100);
+    setTimeout(() => resolve(null), 10000);
+  });
+}
+
+// Authentication Check - Run BEFORE LiveBroadcast class
+async function checkAuthentication() {
+  supabaseClient = await waitForSupabase();
+  if (!supabaseClient) {
+    alert('Failed to connect to database');
+    return false;
+  }
+
+  try {
+    const { data: { session } } = await window.supabase.auth.getSession();
+    const fakeAdmin = JSON.parse(localStorage.getItem('currentUser') || 'null');
+
+    if (!session?.user && !fakeAdmin?.is_admin) {
+      alert('You must be logged in to access this page.');
+      location.href = 'login.html';
+      return false;
+    }
+
+    console.log('✅ User authenticated, access granted to live broadcast page');
+    return true;
+  } catch (err) {
+    console.error('Authentication error:', err);
+    alert('Session error. Redirecting to login.');
+    location.href = 'login.html';
+    return false;
+  }
+}
+
 class LiveBroadcast {
     constructor() {
-        this.apiKey = '54c135938e9d7cc39c5532187a963f46'; // OpenWeatherMap API Key
+        this.apiKey = '54c135938e9d7cc39c5532187a963f46';
         this.baseURL = 'https://api.openweathermap.org/data/2.5';
         this.currentCity = 'San Pablo City';
-        this.updateInterval = 300000; // 5 minutes
+        this.updateInterval = 300000;
         this.weatherMap = null;
         this.currentLayer = 'precipitation';
         
-        // Philippine cities coordinates
         this.phCities = {
             'San Pablo City': { lat: 14.0700, lon: 121.3250 },
             'Manila': { lat: 14.5995, lon: 120.9842 },
@@ -32,24 +78,20 @@ class LiveBroadcast {
     }
 
     setupEventListeners() {
-        // City selector
         document.getElementById('citySelector').addEventListener('change', (e) => {
             this.currentCity = e.target.value;
             this.loadWeatherData();
             this.updateMapCenter();
         });
 
-        // Refresh button
         document.getElementById('refreshBtn').addEventListener('click', () => {
             this.loadWeatherData();
             this.refreshWeatherMap();
             this.addUpdate('Manual refresh triggered');
         });
 
-        // Fullscreen button
         document.getElementById('fullscreenBtn').addEventListener('click', this.toggleFullscreen);
 
-        // Map controls
         document.querySelectorAll('.map-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 document.querySelectorAll('.map-btn').forEach(b => b.classList.remove('active'));
@@ -61,18 +103,16 @@ class LiveBroadcast {
 
     initializeWeatherMap() {
         const mapContainer = document.getElementById('weatherMap');
-        mapContainer.innerHTML = ''; // Clear placeholder
+        mapContainer.innerHTML = '';
         
         const coords = this.phCities[this.currentCity];
         
-        // Create iframe for Windy embed (more reliable than API)
         const iframe = document.createElement('iframe');
         iframe.style.width = '100%';
         iframe.style.height = '300px';
         iframe.style.border = 'none';
         iframe.style.borderRadius = '0';
         
-        // Windy embed URL with your coordinates
         const windyUrl = `https://embed.windy.com/embed2.html?lat=${coords.lat}&lon=${coords.lon}&detailLat=${coords.lat}&detailLon=${coords.lon}&width=650&height=450&zoom=8&level=surface&overlay=rain&product=ecmwf&menu=&message=&marker=&calendar=now&pressure=&type=map&location=coordinates&detail=&metricWind=default&metricTemp=default&radarRange=-1`;
         
         iframe.src = windyUrl;
@@ -81,13 +121,12 @@ class LiveBroadcast {
         this.windyIframe = iframe;
         this.currentLayer = 'precipitation';
         
-        console.log('âœ… Windy weather map initialized (embed mode)');
+        console.log('✅ Windy weather map initialized');
         this.addUpdate('Weather map loaded successfully');
     }
 
     switchMapLayer(layer) {
         if (this.windyAPI) {
-            // Map layer names to Windy overlay names
             const windyLayers = {
                 'precipitation': 'rain',
                 'temperature': 'temp',
@@ -111,7 +150,6 @@ class LiveBroadcast {
     }
 
     refreshWeatherMap() {
-        // Windy auto-refreshes, but we can force update if needed
         if (this.windyAPI) {
             this.windyAPI.store.set('timestamp', Date.now());
         }
@@ -208,12 +246,12 @@ class LiveBroadcast {
                 <div class="weather-icon-large">
                     <i class="${this.getWeatherIcon(weather.icon)}"></i>
                 </div>
-                <div class="temperature-display">${weather.temperature}Â°C</div>
+                <div class="temperature-display">${weather.temperature}°C</div>
                 <div class="weather-description">${weather.description}</div>
                 <div class="weather-details-grid">
                     <div class="weather-detail">
                         <span>Feels like:</span>
-                        <span>${weather.feelsLike}Â°C</span>
+                        <span>${weather.feelsLike}°C</span>
                     </div>
                     <div class="weather-detail">
                         <span>Humidity:</span>
@@ -253,7 +291,7 @@ class LiveBroadcast {
                         <div class="weather-icon">
                             <i class="${this.getWeatherIcon(day.icon)}"></i>
                         </div>
-                        <div class="temperature">${day.temp}Â°C</div>
+                        <div class="temperature">${day.temp}°C</div>
                         <div class="description">${day.description}</div>
                     </div>
                 `).join('')}
@@ -288,8 +326,8 @@ class LiveBroadcast {
         const temps = forecast.list.map(item => item.main.temp);
         const humidities = forecast.list.map(item => item.main.humidity);
         
-        document.getElementById('maxTemp').textContent = `${Math.round(Math.max(...temps))}Â°C`;
-        document.getElementById('minTemp').textContent = `${Math.round(Math.min(...temps))}Â°C`;
+        document.getElementById('maxTemp').textContent = `${Math.round(Math.max(...temps))}°C`;
+        document.getElementById('minTemp').textContent = `${Math.round(Math.min(...temps))}°C`;
         document.getElementById('avgHumidity').textContent = `${Math.round(humidities.reduce((a, b) => a + b) / humidities.length)}%`;
         document.getElementById('rainTotal').textContent = '25 mm';
     }
@@ -313,7 +351,7 @@ class LiveBroadcast {
             alerts.push({
                 type: 'warning',
                 title: 'Heat Advisory',
-                message: `High temperature (${temp}Â°C). Stay hydrated and avoid prolonged exposure.`
+                message: `High temperature (${temp}°C). Stay hydrated and avoid prolonged exposure.`
             });
         }
 
@@ -444,8 +482,11 @@ class LiveBroadcast {
     }
 }
 
-// Initialize the live broadcast when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
+// Initialize with authentication check
+document.addEventListener('DOMContentLoaded', async () => {
+    const isAuthenticated = await checkAuthentication();
+    if (!isAuthenticated) return;
+    
     new LiveBroadcast();
 });
 

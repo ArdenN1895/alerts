@@ -1346,6 +1346,9 @@ footer {
             font-weight: bold;
             margin-right: 5px;
         }
+        .emergency-guide p{
+            color: black;
+        }
 
         .warning-box {
             background: #fff3cd;

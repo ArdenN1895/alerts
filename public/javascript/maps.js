@@ -1,4 +1,55 @@
-document.addEventListener('DOMContentLoaded', function () {
+// javascript/maps.js - WITH AUTHENTICATION CHECK
+import './supabase.js';
+
+let supabaseClient = null;
+
+function waitForSupabase() {
+  return new Promise(resolve => {
+    if (window.supabase) return resolve(window.supabase);
+    window.addEventListener('supabase-ready', () => resolve(window.supabase), { once: true });
+    const check = setInterval(() => {
+      if (window.supabase) {
+        clearInterval(check);
+        resolve(window.supabase);
+      }
+    }, 100);
+    setTimeout(() => resolve(null), 10000);
+  });
+}
+
+// Authentication Check
+async function checkAuthentication() {
+  supabaseClient = await waitForSupabase();
+  if (!supabaseClient) {
+    alert('Failed to connect to database');
+    return false;
+  }
+
+  try {
+    const { data: { session } } = await window.supabase.auth.getSession();
+    const fakeAdmin = JSON.parse(localStorage.getItem('currentUser') || 'null');
+
+    if (!session?.user && !fakeAdmin?.is_admin) {
+      alert('You must be logged in to access this page.');
+      location.href = 'login.html';
+      return false;
+    }
+
+    console.log('✅ User authenticated, access granted to map page');
+    return true;
+  } catch (err) {
+    console.error('Authentication error:', err);
+    alert('Session error. Redirecting to login.');
+    location.href = 'login.html';
+    return false;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', async function () {
+    // Check authentication first
+    const isAuthenticated = await checkAuthentication();
+    if (!isAuthenticated) return;
+
     // Verify Leaflet is loaded
     if (typeof L === 'undefined') {
         console.error('Leaflet library not loaded!');
@@ -108,14 +159,14 @@ document.addEventListener('DOMContentLoaded', function () {
                     <h3 style="margin: 0 0 10px; color: #005ea5; font-size: 16px;">
                         <i class="fas fa-home"></i> ${center.name}
                     </h3>
-                    <p style="margin: 5px 0; font-size: 13px;"><strong>ðŸ“ Address:</strong><br>${center.address}</p>
-                    <p style="margin: 5px 0; font-size: 13px;"><strong>ðŸ‘¥ Capacity:</strong> ${center.capacity}</p>
-                    <p style="margin: 5px 0; font-size: 13px;"><strong>ðŸ“ž Contact:</strong><br>${center.contact}</p>
+                    <p style="margin: 5px 0; font-size: 13px;"><strong>📍 Address:</strong><br>${center.address}</p>
+                    <p style="margin: 5px 0; font-size: 13px;"><strong>👥 Capacity:</strong> ${center.capacity}</p>
+                    <p style="margin: 5px 0; font-size: 13px;"><strong>📞 Contact:</strong><br>${center.contact}</p>
                     <div style="margin-top: 12px; text-align: center;">
                         <a href="https://www.google.com/maps/dir/?api=1&destination=${center.coords[0]},${center.coords[1]}&travelmode=driving" 
                            target="_blank"
                            style="background:#e57200; color:white; padding:10px 18px; border-radius:6px; text-decoration:none; font-size:14px; font-weight:600; display:inline-block;">
-                            ðŸš— Navigate Here
+                            🚗 Navigate Here
                         </a>
                     </div>
                 </div>
@@ -155,7 +206,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     <h3 style="margin: 0 0 8px; color: #dc3545; font-size: 15px;">
                         <i class="fas fa-exclamation-triangle"></i> ${zone.name}
                     </h3>
-                    <p style="margin: 5px 0; font-size: 13px; color: #555;">âš ï¸ ${zone.risk}</p>
+                    <p style="margin: 5px 0; font-size: 13px; color: #555;">⚠️ ${zone.risk}</p>
                     <p style="margin: 8px 0 0; font-size: 12px; color: #666; font-style: italic;">
                         Evacuate immediately when alert is issued
                     </p>
@@ -193,7 +244,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Add scale control
     L.control.scale({ imperial: false, metric: true }).addTo(map);
 
-    console.log('âœ… Map initialized successfully with', evacuationCenters.length, 'evacuation centers');
+    console.log('✅ Map initialized successfully with', evacuationCenters.length, 'evacuation centers');
 });
 
 // Mobile menu toggle

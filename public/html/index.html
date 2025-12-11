@@ -176,6 +176,329 @@ if ('serviceWorker' in navigator) {
     </div>
 </div>
 
+        <!-- Floating Emergency Guide Button -->
+    <button class="emergency-guide-btn" id="emergencyGuideBtn" title="Emergency Preparedness Guide">
+        <i class="fas fa-book-medical"></i>
+    </button>
+
+    <!-- Emergency Guide Modal -->
+    <div class="emergency-guide-modal" id="emergencyGuideModal">
+        <div class="emergency-guide-overlay"></div>
+        <div class="emergency-guide-content">
+            <div class="emergency-guide-header">
+                <i class="fas fa-shield-alt"></i>
+                <h2>Emergency Preparedness Guide</h2>
+                <button class="emergency-guide-close" id="emergencyGuideClose">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="emergency-guide-body">
+                <!-- Tabs -->
+                <div class="emergency-tabs">
+                    <button class="emergency-tab active" data-tab="go-bag">Go Bag</button>
+                    <button class="emergency-tab" data-tab="disasters">Disaster Types</button>
+                    <button class="emergency-tab" data-tab="first-aid">First Aid</button>
+                    <button class="emergency-tab" data-tab="contacts">Important Contacts</button>
+                </div>
+
+                <!-- Go Bag Content -->
+                <div class="emergency-tab-content active" id="go-bag">
+                    <div class="emergency-section">
+                        <h3><i class="fas fa-backpack"></i> Emergency Go Bag Essentials</h3>
+                        <p>Prepare a go bag that you can grab quickly in case of evacuation. Keep it in an easily accessible location.</p>
+
+                        <div class="emergency-grid">
+                            <div class="emergency-card">
+                                <h4>Documents & Money</h4>
+                                <ul>
+                                    <li>ID cards & passports</li>
+                                    <li>Birth certificates</li>
+                                    <li>Insurance papers</li>
+                                    <li>Property documents</li>
+                                    <li>Cash in small bills</li>
+                                    <li>ATM/credit cards</li>
+                                </ul>
+                            </div>
+
+                            <div class="emergency-card">
+                                <h4>Water & Food</h4>
+                                <ul>
+                                    <li>3 days of bottled water</li>
+                                    <li>Non-perishable food</li>
+                                    <li>Can opener</li>
+                                    <li>Energy bars</li>
+                                    <li>Instant noodles</li>
+                                    <li>Canned goods</li>
+                                </ul>
+                            </div>
+
+                            <div class="emergency-card">
+                                <h4>Medical Supplies</h4>
+                                <ul>
+                                    <li>First aid kit</li>
+                                    <li>Prescription medicines</li>
+                                    <li>Pain relievers</li>
+                                    <li>Bandages & gauze</li>
+                                    <li>Antiseptic</li>
+                                    <li>Thermometer</li>
+                                </ul>
+                            </div>
+
+                            <div class="emergency-card">
+                                <h4>Tools & Supplies</h4>
+                                <ul>
+                                    <li>Flashlight (LED)</li>
+                                    <li>Extra batteries</li>
+                                    <li>Radio (battery/solar)</li>
+                                    <li>Whistle</li>
+                                    <li>Multi-tool/knife</li>
+                                    <li>Duct tape</li>
+                                </ul>
+                            </div>
+
+                            <div class="emergency-card">
+                                <h4>Clothing & Hygiene</h4>
+                                <ul>
+                                    <li>Change of clothes</li>
+                                    <li>Rain gear/poncho</li>
+                                    <li>Sturdy shoes</li>
+                                    <li>Blanket/sleeping bag</li>
+                                    <li>Toiletries</li>
+                                    <li>Face masks</li>
+                                </ul>
+                            </div>
+
+                            <div class="emergency-card">
+                                <h4>Communication</h4>
+                                <ul>
+                                    <li>Charged power bank</li>
+                                    <li>Phone charger</li>
+                                    <li>Emergency contacts list</li>
+                                    <li>Local maps</li>
+                                    <li>Whistle for signaling</li>
+                                    <li>Notepad & pen</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="warning-box">
+                            <strong><i class="fas fa-exclamation-triangle"></i> Important Reminders</strong>
+                            <p>Check and update your go bag every 6 months. Replace expired food, medicines, and batteries. Keep your bag in a cool, dry place.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Disasters Content -->
+                <div class="emergency-tab-content" id="disasters">
+                    <div class="emergency-section">
+                        <h3><i class="fas fa-house-damage"></i> Typhoons & Floods</h3>
+                        
+                        <h4>Before:</h4>
+                        <ul class="emergency-list">
+                            <li><i class="fas fa-check-circle"></i> Monitor weather updates from PAGASA</li>
+                            <li><i class="fas fa-check-circle"></i> Secure loose objects outside your home</li>
+                            <li><i class="fas fa-check-circle"></i> Store adequate food, water, and medicine</li>
+                            <li><i class="fas fa-check-circle"></i> Charge all electronic devices and power banks</li>
+                            <li><i class="fas fa-check-circle"></i> Know your evacuation routes and centers</li>
+                        </ul>
+
+                        <h4>During:</h4>
+                        <ul class="emergency-list">
+                            <li><i class="fas fa-check-circle"></i> Stay indoors and away from windows</li>
+                            <li><i class="fas fa-check-circle"></i> Evacuate immediately if advised by authorities</li>
+                            <li><i class="fas fa-check-circle"></i> Avoid flooded areas - don't walk or drive through</li>
+                            <li><i class="fas fa-check-circle"></i> Turn off electricity if flooding is imminent</li>
+                            <li><i class="fas fa-check-circle"></i> Move to higher ground if water rises</li>
+                        </ul>
+
+                        <h4>After:</h4>
+                        <ul class="emergency-list">
+                            <li><i class="fas fa-check-circle"></i> Check for injuries and provide first aid</li>
+                            <li><i class="fas fa-check-circle"></i> Avoid damaged buildings and power lines</li>
+                            <li><i class="fas fa-check-circle"></i> Boil water before drinking if supply is compromised</li>
+                            <li><i class="fas fa-check-circle"></i> Document damage for insurance claims</li>
+                        </ul>
+                    </div>
+
+                    <div class="emergency-section">
+                        <h3><i class="fas fa-earthquake"></i> Earthquakes</h3>
+                        
+                        <h4>During:</h4>
+                        <ul class="emergency-list">
+                            <li><i class="fas fa-check-circle"></i> <strong>DROP, COVER, and HOLD ON</strong></li>
+                            <li><i class="fas fa-check-circle"></i> Drop to your hands and knees</li>
+                            <li><i class="fas fa-check-circle"></i> Take cover under a sturdy table or desk</li>
+                            <li><i class="fas fa-check-circle"></i> Hold on until shaking stops</li>
+                            <li><i class="fas fa-check-circle"></i> If outdoors, move away from buildings and power lines</li>
+                            <li><i class="fas fa-check-circle"></i> If in a vehicle, pull over and stay inside</li>
+                        </ul>
+
+                        <h4>After:</h4>
+                        <ul class="emergency-list">
+                            <li><i class="fas fa-check-circle"></i> Expect aftershocks</li>
+                            <li><i class="fas fa-check-circle"></i> Check for gas leaks - don't use matches/lighters</li>
+                            <li><i class="fas fa-check-circle"></i> Evacuate if building is damaged</li>
+                            <li><i class="fas fa-check-circle"></i> Stay away from beaches (tsunami risk)</li>
+                        </ul>
+                    </div>
+
+                    <div class="emergency-section">
+                        <h3><i class="fas fa-fire"></i> Fires</h3>
+                        
+                        <ul class="emergency-list">
+                            <li><i class="fas fa-check-circle"></i> Alert everyone - shout "FIRE!"</li>
+                            <li><i class="fas fa-check-circle"></i> Call emergency services immediately</li>
+                            <li><i class="fas fa-check-circle"></i> Evacuate using stairs, never elevators</li>
+                            <li><i class="fas fa-check-circle"></i> Stay low to avoid smoke</li>
+                            <li><i class="fas fa-check-circle"></i> Feel doors before opening - don't open if hot</li>
+                            <li><i class="fas fa-check-circle"></i> Stop, drop, and roll if clothes catch fire</li>
+                            <li><i class="fas fa-check-circle"></i> Don't go back inside for belongings</li>
+                        </ul>
+                    </div>
+
+                    <div class="danger-box">
+                        <strong><i class="fas fa-skull-crossbones"></i> Critical Safety Rules</strong>
+                        <p>Never ignore evacuation orders. Your life is more valuable than any possessions. Always have multiple evacuation routes planned.</p>
+                    </div>
+                </div>
+
+                <!-- First Aid Content -->
+                <div class="emergency-tab-content" id="first-aid">
+                    <div class="emergency-section">
+                        <h3><i class="fas fa-heartbeat"></i> Basic First Aid</h3>
+
+                        <h4>Severe Bleeding:</h4>
+                        <ul class="emergency-list">
+                            <li><i class="fas fa-check-circle"></i> Apply direct pressure with clean cloth</li>
+                            <li><i class="fas fa-check-circle"></i> Don't remove cloth if soaked - add more on top</li>
+                            <li><i class="fas fa-check-circle"></i> Elevate wounded area above heart if possible</li>
+                            <li><i class="fas fa-check-circle"></i> Call for medical help immediately</li>
+                        </ul>
+
+                        <h4>Burns:</h4>
+                        <ul class="emergency-list">
+                            <li><i class="fas fa-check-circle"></i> Cool burn with running water for 10-20 minutes</li>
+                            <li><i class="fas fa-check-circle"></i> Remove jewelry and tight clothing near burn</li>
+                            <li><i class="fas fa-check-circle"></i> Cover with sterile, non-stick bandage</li>
+                            <li><i class="fas fa-check-circle"></i> Don't apply ice, butter, or ointments</li>
+                            <li><i class="fas fa-check-circle"></i> Seek medical help for severe burns</li>
+                        </ul>
+
+                        <h4>Choking (Heimlich Maneuver):</h4>
+                        <ul class="emergency-list">
+                            <li><i class="fas fa-check-circle"></i> Stand behind person, wrap arms around waist</li>
+                            <li><i class="fas fa-check-circle"></i> Make fist above navel, below ribcage</li>
+                            <li><i class="fas fa-check-circle"></i> Grasp fist with other hand</li>
+                            <li><i class="fas fa-check-circle"></i> Give quick upward thrusts</li>
+                            <li><i class="fas fa-check-circle"></i> Repeat until object dislodges</li>
+                        </ul>
+
+                        <h4>CPR (For Adults):</h4>
+                        <ul class="emergency-list">
+                            <li><i class="fas fa-check-circle"></i> Call emergency services first</li>
+                            <li><i class="fas fa-check-circle"></i> Place heel of hand on center of chest</li>
+                            <li><i class="fas fa-check-circle"></i> Place other hand on top, interlock fingers</li>
+                            <li><i class="fas fa-check-circle"></i> Push hard and fast - 100-120 compressions/min</li>
+                            <li><i class="fas fa-check-circle"></i> Push down at least 2 inches deep</li>
+                            <li><i class="fas fa-check-circle"></i> Give 30 compressions, then 2 rescue breaths</li>
+                        </ul>
+
+                        <h4>Fractures:</h4>
+                        <ul class="emergency-list">
+                            <li><i class="fas fa-check-circle"></i> Don't try to realign the bone</li>
+                            <li><i class="fas fa-check-circle"></i> Immobilize injured area</li>
+                            <li><i class="fas fa-check-circle"></i> Apply ice packs to reduce swelling</li>
+                            <li><i class="fas fa-check-circle"></i> Treat for shock - keep person warm</li>
+                            <li><i class="fas fa-check-circle"></i> Seek immediate medical attention</li>
+                        </ul>
+
+                        <div class="warning-box">
+                            <strong><i class="fas fa-exclamation-triangle"></i> Disclaimer</strong>
+                            <p>This is basic first aid information. Always seek professional medical help in emergencies. Consider taking a certified first aid training course.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Important Contacts Content -->
+                <div class="emergency-tab-content" id="contacts">
+                    <div class="emergency-section">
+                        <h3><i class="fas fa-phone-alt"></i> Emergency Hotlines</h3>
+
+                        <div class="emergency-grid">
+                            <div class="emergency-card">
+                                <h4>San Pablo City CDRRMO</h4>
+                                <ul>
+                                    <li>0998-5407171</li>
+                                    <li>(049) 800-0405</li>
+                                    <li>(049) 549-0500</li>
+                                </ul>
+                            </div>
+
+                            <div class="emergency-card">
+                                <h4>San Pablo BFP (Fire)</h4>
+                                <ul>
+                                    <li>0999-5784943</li>
+                                    <li>(049) 562-7654</li>
+                                    <li>(049) 572-3868</li>
+                                </ul>
+                            </div>
+
+                            <div class="emergency-card">
+                                <h4>San Pablo PNP (Police)</h4>
+                                <ul>
+                                    <li>0908-1930819</li>
+                                    <li>0927-8377454</li>
+                                    <li>(049) 562-6474</li>
+                                </ul>
+                            </div>
+
+                            <div class="emergency-card">
+                                <h4>Barangay Radio Control</h4>
+                                <ul>
+                                    <li>(049) 562-3086</li>
+                                </ul>
+                            </div>
+
+                            <div class="emergency-card">
+                                <h4>National Emergency Hotline</h4>
+                                <ul>
+                                    <li>911 (Emergency)</li>
+                                    <li>117 (NDRRMC)</li>
+                                </ul>
+                            </div>
+
+                            <div class="emergency-card">
+                                <h4>Medical Emergency</h4>
+                                <ul>
+                                    <li>Red Cross: 143</li>
+                                    <li>DOH Hotline: 1555</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="warning-box">
+                            <strong><i class="fas fa-mobile-alt"></i> Save These Numbers</strong>
+                            <p>Save these emergency numbers in your phone. Make sure your family members also have them. In an emergency, every second counts.</p>
+                        </div>
+
+                        <div class="emergency-section" style="margin-top: 30px;">
+                            <h4>Family Emergency Plan</h4>
+                            <ul class="emergency-list">
+                                <li><i class="fas fa-check-circle"></i> Designate an out-of-town contact person</li>
+                                <li><i class="fas fa-check-circle"></i> Choose meeting places (near home & outside neighborhood)</li>
+                                <li><i class="fas fa-check-circle"></i> Make sure everyone knows evacuation routes</li>
+                                <li><i class="fas fa-check-circle"></i> Practice emergency drills regularly</li>
+                                <li><i class="fas fa-check-circle"></i> Keep copies of important documents in waterproof container</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
         <div class="copyright">
             <p>© 2025 SPC Alerts • To God Be The Glory</p>
         </div>

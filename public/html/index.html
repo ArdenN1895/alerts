@@ -29,6 +29,92 @@
       import '../javascript/supabase.js';
     </script>
 
+    <style>
+        .filter-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .search-wrapper {
+            flex: 1;
+            min-width: 250px;
+            position: relative;
+        }
+
+        .search-wrapper i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #666;
+        }
+
+        #incidentSearch {
+            width: 100%;
+            padding: 12px 15px 12px 45px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        #incidentSearch:focus {
+            outline: none;
+            border-color: #d32f2f;
+            box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.1);
+        }
+
+        .sort-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sort-wrapper label {
+            font-weight: 600;
+            color: #333;
+            white-space: nowrap;
+        }
+
+        #incidentSort {
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            background-color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 180px;
+        }
+
+        #incidentSort:focus {
+            outline: none;
+            border-color: #d32f2f;
+            box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.1);
+        }
+
+        #incidentSort:hover {
+            border-color: #999;
+        }
+
+        @media (max-width: 768px) {
+            .filter-controls {
+                flex-direction: column;
+            }
+
+            .search-wrapper, .sort-wrapper {
+                width: 100%;
+            }
+
+            #incidentSort {
+                width: 100%;
+            }
+        }
+    </style>
+
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
@@ -105,6 +191,30 @@ if ('serviceWorker' in navigator) {
 
     <section class="container">
         <h2 class="section-title">Reported Incidents</h2>
+        
+        <!-- Search and Sort Controls -->
+        <div class="filter-controls">
+            <div class="search-wrapper">
+                <i class="fas fa-search"></i>
+                <input 
+                    type="text" 
+                    id="incidentSearch" 
+                    placeholder="Search by incident type or description..."
+                    autocomplete="off"
+                >
+            </div>
+            
+            <div class="sort-wrapper">
+                <label for="incidentSort">Sort by:</label>
+                <select id="incidentSort">
+                    <option value="newest">Newest First</option>
+                    <option value="oldest">Oldest First</option>
+                    <option value="type-asc">Type (A-Z)</option>
+                    <option value="type-desc">Type (Z-A)</option>
+                </select>
+            </div>
+        </div>
+
         <div class="cards">
             <!-- Incidents with real addresses will load here -->
         </div>

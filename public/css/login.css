@@ -496,6 +496,29 @@ footer {
     font-size: 18px;
 }
 
+.password-wrapper {
+    position: relative;
+    }
+        
+.toggle-password {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: #666;
+    transition: color 0.3s;
+}
+        
+.toggle-password:hover {
+    color: #333;
+}
+        
+.input-with-icon input {
+    padding-right: 45px;
+}
+
+
 @media (max-width: 768px) {
 
     .header-top {

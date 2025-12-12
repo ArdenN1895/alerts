@@ -294,6 +294,7 @@ async function renderFilteredIncidents(incidents) {
         <td>${escapeHtml(name)}</td>
         <td style="font-size:0.9em;">${date}</td>
         <td>${photo}</td>
+        <td><button onclick="deleteIncident('${incident.id}')">Delete</button><td>
       </tr>
     `;
   }));

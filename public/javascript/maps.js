@@ -1,4 +1,3 @@
-// javascript/maps.js - WITH AUTHENTICATION CHECK
 import './supabase.js';
 
 let supabaseClient = null;
@@ -89,7 +88,6 @@ document.addEventListener('DOMContentLoaded', async function () {
         shadowSize: [41, 41]
     });
 
-    // === REAL EVACUATION CENTERS IN SAN PABLO CITY ===
     const evacuationCenters = [
         {
             name: "San Pablo City Multi-Purpose Evacuation Center",
@@ -149,7 +147,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         }
     ];
 
-    // Add Evacuation Center Markers with enhanced popups
+    // Evacuation Center Markers with enhanced popups
     const markers = [];
     evacuationCenters.forEach(center => {
         const marker = L.marker(center.coords, { icon: evacIcon })

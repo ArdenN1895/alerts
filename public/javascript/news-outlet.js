@@ -1,4 +1,3 @@
-// javascript/news-outlet.js - WITH AUTHENTICATION CHECK
 import './supabase.js';
 
 let supabaseClient = null;

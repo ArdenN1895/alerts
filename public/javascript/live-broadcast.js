@@ -1,4 +1,3 @@
-// javascript/live-broadcast.js - WITH AUTHENTICATION CHECK
 import './supabase.js';
 
 let supabaseClient = null;
@@ -17,7 +16,6 @@ function waitForSupabase() {
   });
 }
 
-// Authentication Check - Run BEFORE LiveBroadcast class
 async function checkAuthentication() {
   supabaseClient = await waitForSupabase();
   if (!supabaseClient) {

@@ -1,6 +1,3 @@
-// public/javascript/keep-alive.js
-// Keeps service worker active for push notifications
-
 console.log('🔄 Keep-alive script loaded');
 
 let keepAliveInterval = null;
@@ -25,7 +22,7 @@ async function initKeepAlive() {
       }
     }
 
-    // Register periodic sync (Chrome/Edge only)
+    // Register periodic sync 
     if ('periodicSync' in registration) {
       try {
         const status = await navigator.permissions.query({
@@ -74,9 +71,7 @@ async function initKeepAlive() {
 navigator.serviceWorker?.addEventListener('message', (event) => {
   if (event.data.type === 'PUSH_RECEIVED') {
     console.log('🔔 Push notification received in app:', event.data);
-    
-    // You can show an in-app notification here
-    // Or update the UI with new data
+
   }
 });
 

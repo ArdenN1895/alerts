@@ -1,4 +1,3 @@
-// javascript/profile.js - FIXED & WORKING (2025)
 import '../javascript/supabase.js';
 
 let currentUserData = null;

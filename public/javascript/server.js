@@ -1,4 +1,3 @@
-// server.js — Real-time ABS-CBN Calamity Hub Scraper (Fixed)
 const express = require('express');
 const puppeteer = require('puppeteer');
 const cors = require('cors');

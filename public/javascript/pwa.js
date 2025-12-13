@@ -1,4 +1,3 @@
-// javascript/pwa.js - Enhanced Install + Auto Push Subscribe
 let deferredPrompt;
 
 window.addEventListener('beforeinstallprompt', (e) => {

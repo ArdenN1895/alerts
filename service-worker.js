@@ -1,4 +1,3 @@
-// sw.js - Service Worker with Mobile Push Notification Support
 const CACHE_NAME = 'spc-alerts-v12';
 
 const urlsToCache = [
@@ -45,17 +44,15 @@ self.addEventListener('install', event => {
       })
       .then(() => {
         console.log('✅ [SW] Service Worker installed successfully');
-        // ✅ CRITICAL FOR MOBILE: Skip waiting to activate immediately
         return self.skipWaiting();
       })
       .catch(err => {
         console.error('❌ [SW] Install failed:', err);
-        // Don't throw - allow SW to install even if caching fails
       })
   );
 });
 
-// ==================== ACTIVATE EVENT ====================
+
 self.addEventListener('activate', event => {
   console.log('🔄 [SW] Activating Service Worker...');
   
@@ -72,7 +69,7 @@ self.addEventListener('activate', event => {
             })
         );
       }),
-      // ✅ CRITICAL FOR MOBILE: Take control of all clients immediately
+      // Take control of all clients immediately
       self.clients.claim()
     ]).then(() => {
       console.log('✅ [SW] Service Worker activated and controlling all clients');
@@ -82,14 +79,12 @@ self.addEventListener('activate', event => {
   );
 });
 
-// ==================== FETCH EVENT ====================
 self.addEventListener('fetch', event => {
   // Only handle GET requests
   if (event.request.method !== 'GET') return;
 
   const url = new URL(event.request.url);
   
-  // Skip external requests (except for same origin)
   if (!url.origin.includes(self.location.origin) &&
       !url.hostname.includes('vercel.app') && 
       !url.hostname.includes('localhost') && 
@@ -137,12 +132,9 @@ self.addEventListener('fetch', event => {
   );
 });
 
-// ==================== PUSH EVENT (CRITICAL FOR MOBILE) ====================
+
 self.addEventListener('push', event => {
   console.log('🔔 [SW] Push notification received at:', new Date().toISOString());
-  
-  // ✅ FIX 1: Always show a notification when push is received
-  // Mobile browsers REQUIRE a notification to be shown for every push event
   
   let notificationData = { 
     title: 'SPC Alerts', 
@@ -174,14 +166,13 @@ self.addEventListener('push', event => {
     }
   }
 
-  // ✅ FIX 2: Mobile-optimized notification options
   const notificationOptions = {
     body: notificationData.body,
     icon: notificationData.icon,
     badge: notificationData.badge,
     image: notificationData.image,
     
-    // ✅ Mobile-specific options
+    // Mobile-specific options
     vibrate: [200, 100, 200, 100, 200], // Vibration pattern
     requireInteraction: true, // Keep notification visible until user interacts
     silent: false, // Play notification sound
@@ -211,7 +202,6 @@ self.addEventListener('push', event => {
     ]
   };
 
-  // ✅ FIX 3: ALWAYS show notification (critical for mobile)
   event.waitUntil(
     self.registration.showNotification(
       notificationData.title, 
@@ -240,7 +230,6 @@ self.addEventListener('push', event => {
     .catch(err => {
       console.error('❌ [SW] Failed to show notification:', err);
       
-      // ✅ FIX 4: Even if showing fails, try a fallback notification
       return self.registration.showNotification('SPC Alerts', {
         body: 'New alert received',
         icon: '/public/img/icon-192.png',
@@ -251,7 +240,6 @@ self.addEventListener('push', event => {
   );
 });
 
-// ==================== NOTIFICATION CLICK EVENT ====================
 self.addEventListener('notificationclick', event => {
   console.log('🖱️ [SW] Notification clicked');
   console.log('Action:', event.action);
@@ -270,7 +258,6 @@ self.addEventListener('notificationclick', event => {
   const urlToOpen = event.notification.data?.url || '/public/html/index.html';
   console.log('🔗 [SW] Opening URL:', urlToOpen);
 
-  // ✅ FIX 5: Better window focusing logic for mobile
   event.waitUntil(
     clients.matchAll({ 
       type: 'window', 
@@ -321,11 +308,9 @@ self.addEventListener('notificationclick', event => {
   );
 });
 
-// ==================== NOTIFICATION CLOSE EVENT ====================
 self.addEventListener('notificationclose', event => {
   console.log('🚪 [SW] Notification closed:', event.notification.tag);
   
-  // Optional: Track notification dismissals
   event.waitUntil(
     Promise.resolve().then(() => {
       console.log('📊 [SW] User dismissed notification without clicking');
@@ -333,7 +318,6 @@ self.addEventListener('notificationclose', event => {
   );
 });
 
-// ==================== PUSH SUBSCRIPTION CHANGE EVENT ====================
 self.addEventListener('pushsubscriptionchange', event => {
   console.log('🔄 [SW] Push subscription changed/expired');
   
@@ -363,7 +347,6 @@ self.addEventListener('pushsubscriptionchange', event => {
   );
 });
 
-// ==================== MESSAGE EVENT ====================
 self.addEventListener('message', event => {
   console.log('💬 [SW] Message received from client:', event.data);
   
@@ -393,7 +376,6 @@ self.addEventListener('message', event => {
   }
 });
 
-// ==================== BACKGROUND SYNC ====================
 self.addEventListener('sync', event => {
   console.log('🔄 [SW] Background sync:', event.tag);
   
@@ -406,7 +388,6 @@ self.addEventListener('sync', event => {
   }
 });
 
-// ==================== PERIODIC BACKGROUND SYNC ====================
 self.addEventListener('periodicsync', event => {
   console.log('📱 [SW] Periodic sync:', event.tag);
   
@@ -419,7 +400,6 @@ self.addEventListener('periodicsync', event => {
   }
 });
 
-// ==================== HELPER FUNCTIONS ====================
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');

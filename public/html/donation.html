@@ -175,7 +175,7 @@ if ('serviceWorker' in navigator) {
         document.querySelectorAll('.logout').forEach(el => {
             el.addEventListener('click', e => {
                 e.preventDefault();
-                if (confirm('Logout from SPC Alerts?')) {
+                if (confirm('Logout from SAGIP SPC?')) {
                     localStorage.clear();
                     window.location.href = '../html/login.html';
                 }

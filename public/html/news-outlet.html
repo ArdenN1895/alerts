@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>News Outlet - SPC Alerts</title>
+    <title>SAGIP SPC</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="../css/news-outlet.css">
     <!-- PWA Manifest -->
@@ -52,7 +52,7 @@ if ('serviceWorker' in navigator) {
     <header>
         <div class="header-top">
             <div class="logo">
-                <a href="index.html">SPC Alerts</a>
+                <a href="index.html">SAGIP SPC</a>
             </div>
             <div class="header-actions">
                 <button id="installBtn" class="install-btn" style="display:none;"><i class="fas fa-download"></i></button>
@@ -186,7 +186,7 @@ if ('serviceWorker' in navigator) {
         document.querySelectorAll('.logout').forEach(el => {
             el.addEventListener('click', e => {
                 e.preventDefault();
-                if (confirm('Logout from SPC Alerts?')) {
+                if (confirm('Logout from SAGIP SPC?')) {
                     localStorage.clear();
                     window.location.href = '../html/login.html';
                 }

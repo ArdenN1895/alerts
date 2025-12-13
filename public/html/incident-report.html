@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <meta name="apple-mobile-web-app-title" content="SPC Alerts">
-    <title>SPC Alerts</title>
+    <title>SAGIP SPC</title>
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="../css/incident-report.css">
@@ -61,7 +61,7 @@ if ('serviceWorker' in navigator) {
     <header>
         <div class="header-top">
             <div class="logo">
-                <a href="index.html">SPC Alerts</a>
+                <a href="index.html">SAGIP SPC</a>
             </div>
             <div class="header-actions">
                 <button id="installBtn" class="install-btn" style="display:none;"><i class="fas fa-download"></i></button>
@@ -189,7 +189,7 @@ if ('serviceWorker' in navigator) {
 </div>
 
         <div class="copyright">
-            <p>© 2025 SPC Alerts • To God Be The Glory</p>
+            <p>© 2025 SAGIP SPC • To God Be The Glory</p>
         </div>
     </footer>
 
@@ -199,7 +199,7 @@ if ('serviceWorker' in navigator) {
         document.querySelectorAll('.logout').forEach(el => {
             el.addEventListener('click', e => {
                 e.preventDefault();
-                if (confirm('Logout from SPC Alerts?')) {
+                if (confirm('Logout from SAGIP SPC?')) {
                     localStorage.clear();
                     window.location.href = '../html/login.html';
                 }

@@ -1,4 +1,3 @@
-// javascript/index.js - WITH AUTHENTICATION CHECK
 import './supabase.js';
 
 let supabaseClient = null;
@@ -56,7 +55,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Cache for addresses
   window.addressCache = new Map();
-  let allIncidents = []; // Store all incidents for filtering
+  let allIncidents = []; 
 
   let supabase;
   try {
@@ -70,7 +69,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
   
-  // FREE Reverse Geocoding (Photon + OSM)
+  // Reverse Geocoding (Photon + OSM)
   async function getAddressFromCoords(lat, lng) {
     const key = `${lat.toFixed(6)},${lng.toFixed(6)}`;
     if (window.addressCache.has(key)) return window.addressCache.get(key);

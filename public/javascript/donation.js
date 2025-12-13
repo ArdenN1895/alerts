@@ -1,4 +1,3 @@
-// javascript/donation.js - WITH AUTHENTICATION CHECK
 import './supabase.js';
 
 let supabaseClient = null;
@@ -46,7 +45,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 });
 
-// PWA Install Button Logic
+// PWA Install Button 
 let deferredPrompt;
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();

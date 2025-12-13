@@ -1,4 +1,3 @@
-// javascript/incident-report.js - WITH ENHANCED AUTHENTICATION CHECK
 import './supabase.js';
 
 let supabaseClient = null;

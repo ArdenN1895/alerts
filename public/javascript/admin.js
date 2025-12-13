@@ -387,7 +387,7 @@ function setupRealtime(table, callback) {
 }
 
 
-// admin.js - setupQuickActions function (BROADCAST ALERT - MOBILE COMPATIBLE)
+// setupQuickActions function
 
 function setupQuickActions(supabase, session) {
   const alertModal = document.getElementById('alertModal');
@@ -436,7 +436,7 @@ function setupQuickActions(supabase, session) {
   alertTitle.addEventListener('input', updatePreview);
   alertMessage.addEventListener('input', updatePreview);
 
-  // ==================== BROADCAST ALERT SUBMISSION ====================
+  // BROADCAST ALERT SUBMISSION 
   alertForm.onsubmit = async (e) => {
     e.preventDefault();
 
@@ -456,11 +456,11 @@ function setupQuickActions(supabase, session) {
     try {
       console.log('📢 Starting broadcast alert to ALL users...');
 
-      // ✅ TRUE BROADCAST: DO NOT include user_ids
+      
       const response = await supabase.functions.invoke('send-push', {
         body: {
           title: `🚨 ${title}`,
-          body: body, // Keep concise for mobile
+          body: body, 
           icon: '/public/img/icon-192.png',
           badge: isUrgent ? '/public/img/urgent-badge.png' : '/public/img/badge-72.png',
           url: '/public/html/index.html',
@@ -470,7 +470,6 @@ function setupQuickActions(supabase, session) {
             isUrgent: isUrgent,
             timestamp: Date.now()
           }
-          // ✅ NO user_ids = BROADCAST to ALL subscribers
         }
       });
 
@@ -513,7 +512,7 @@ function setupQuickActions(supabase, session) {
     alertStatus.style.display = 'block';
   }
 
-  // Generate Report button (existing code)
+  // Generate Report button 
   document.querySelector('.action-btn:nth-child(2)')?.addEventListener('click', async () => {
     const { data } = await supabase.from('incidents').select('*').order('created_at', { ascending: false });
     if (!data?.length) return alert('No incidents to export');
